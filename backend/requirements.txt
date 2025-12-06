@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+databases
+alembic
+asyncpg
+python-multipart
+passlib[bcrypt]
+email-validator
+python-jose[cryptography]
+sqlalchemy-utils
