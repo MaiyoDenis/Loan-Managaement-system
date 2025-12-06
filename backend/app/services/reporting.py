@@ -1,326 +1,585 @@
 """
-Advanced Reporting Engine with PDF and Excel Export
+Advanced Reporting Engine with PDF/Excel Export
+Generates comprehensive reports for all system data with beautiful formatting
 """
 
 import pandas as pd
-from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.core.permissions import UserRole
+import matplotlib.pyplot as plt
+import seaborn as sns
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-import matplotlib.pyplot as plt
-import seaborn as sns
-from io import BytesIO
-import base64
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.piecharts import Pie
+from reportlab.graphics.charts.linecharts import HorizontalLineChart
+import io
 import os
+from typing import Dict, List, Optional, Any
+from datetime import datetime, date, timedelta
+from decimal import Decimal
 
 from app.database import SessionLocal
-from app.models.loan import Loan, Payment, SavingsAccount, LoanProduct, BranchInventory
+from app.models.loan import Loan, Payment, SavingsAccount, BranchInventory
 from app.models.user import User
 from app.models.branch import Branch, Group
+from app.core.permissions import UserRole
 from app.services.analytics import analytics_engine
 
 
 class ReportingEngine:
-    """Advanced reporting engine with export capabilities"""
+    """
+    Advanced reporting engine with AI-powered insights
+    Generates PDF, Excel, and interactive reports
+    """
     
     def __init__(self):
+        self.db = SessionLocal()
         self.reports_dir = "reports"
         os.makedirs(self.reports_dir, exist_ok=True)
         
-        # Initialize chart styling
+        # Set up matplotlib for chart generation
         plt.style.use('seaborn-v0_8')
         sns.set_palette("husl")
+    
+    def __del__(self):
+        if hasattr(self, 'db'):
+            self.db.close()
+    
+    # ==================== COMPREHENSIVE LOAN REPORTS ====================
     
     def generate_branch_performance_report(self, branch_id: int, 
                                          start_date: date, end_date: date,
                                          format: str = "pdf") -> Dict[str, Any]:
-        """Generate comprehensive branch performance report"""
-        db = SessionLocal()
+        """
+        Generate comprehensive branch performance report
+        Includes: Loans, Payments, Customers, Risk Analysis, Recommendations
+        """
         try:
-            # Get branch information
-            branch = db.query(Branch).filter(Branch.id == branch_id).first()
+            # Get branch data
+            branch = self.db.query(Branch).filter(Branch.id == branch_id).first()
             if not branch:
                 return {"error": "Branch not found"}
             
-            # Collect data
-            report_data = {
-                "branch_info": {
-                    "name": branch.name,
-                    "code": branch.code,
-                    "manager": f"{branch.manager.first_name} {branch.manager.last_name}" if branch.manager else "Not Assigned",
-                    "procurement_officer": f"{branch.procurement_officer.first_name} {branch.procurement_officer.last_name}" if branch.procurement_officer else "Not Assigned",
-                    "report_period": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}",
-                    "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }
+            # Collect comprehensive data
+            report_data = self._collect_branch_data(branch_id, start_date, end_date)
             
-            # Financial metrics
-            financial_data = self._get_branch_financial_data(db, branch_id, start_date, end_date)
-            report_data["financial_metrics"] = financial_data
+            # Generate insights using AI
+            insights = self._generate_branch_insights(report_data)
             
-            # Customer analytics
-            customer_data = self._get_branch_customer_analytics(db, branch_id, start_date, end_date)
-            report_data["customer_analytics"] = customer_data
-            
-            # Loan portfolio analysis
-            portfolio_data = self._get_portfolio_analysis(db, branch_id, start_date, end_date)
-            report_data["portfolio_analysis"] = portfolio_data
-            
-            # Risk assessment
-            risk_data = self._get_risk_assessment(db, branch_id)
-            report_data["risk_assessment"] = risk_data
-            
-            # Staff performance
-            staff_data = self._get_staff_performance(db, branch_id, start_date, end_date)
-            report_data["staff_performance"] = staff_data
-            
-            # Generate charts
-            charts = self._generate_report_charts(report_data)
-            report_data["charts"] = charts
-            
-            # Export based on format
+            # Create report based on format
             if format.lower() == "pdf":
-                file_path = self._export_to_pdf(report_data)
+                file_path = self._create_pdf_branch_report(branch, report_data, insights)
             elif format.lower() == "excel":
-                file_path = self._export_to_excel(report_data)
+                file_path = self._create_excel_branch_report(branch, report_data, insights)
             else:
                 return {"error": "Unsupported format"}
             
             return {
                 "success": True,
                 "file_path": file_path,
-                "report_data": report_data,
-                "file_size": os.path.getsize(file_path) if os.path.exists(file_path) else 0
+                "report_type": "branch_performance",
+                "branch_name": branch.name,
+                "period": f"{start_date} to {end_date}",
+                "generated_at": datetime.utcnow().isoformat(),
+                "insights_summary": insights["summary"]
             }
             
         except Exception as e:
+            logger.error(f"Error generating branch report: {e}")
             return {"error": str(e)}
-        finally:
-            db.close()
     
-    def _get_branch_financial_data(self, db: Session, branch_id: int, 
-                                  start_date: date, end_date: date) -> Dict[str, Any]:
-        """Get comprehensive branch financial data"""
+    def generate_customer_portfolio_report(self, customer_id: int, format: str = "pdf") -> Dict[str, Any]:
+        """Generate detailed customer portfolio report with risk analysis"""
+        try:
+            customer = self.db.query(User).filter(User.id == customer_id).first()
+            if not customer:
+                return {"error": "Customer not found"}
+            
+            # Collect customer data
+            customer_data = self._collect_customer_data(customer_id)
+            
+            # Get risk analysis
+            risk_analysis = analytics_engine.calculate_customer_risk_score(customer_id)
+            
+            # Generate report
+            if format.lower() == "pdf":
+                file_path = self._create_pdf_customer_report(customer, customer_data, risk_analysis)
+            elif format.lower() == "excel":
+                file_path = self._create_excel_customer_report(customer, customer_data, risk_analysis)
+            else:
+                return {"error": "Unsupported format"}
+            
+            return {
+                "success": True,
+                "file_path": file_path,
+                "report_type": "customer_portfolio",
+                "customer_name": f"{customer.first_name} {customer.last_name}",
+                "risk_score": risk_analysis.get("risk_score", 0),
+                "risk_category": risk_analysis.get("risk_category", "Unknown"),
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating customer report: {e}")
+            return {"error": str(e)}
+    
+    def generate_financial_summary_report(self, branch_id: Optional[int] = None,
+                                        start_date: Optional[date] = None,
+                                        end_date: Optional[date] = None,
+                                        format: str = "pdf") -> Dict[str, Any]:
+        """Generate organization-wide financial summary with executive insights"""
+        try:
+            # Set default date range (last 3 months)
+            if not end_date:
+                end_date = date.today()
+            if not start_date:
+                start_date = end_date - timedelta(days=90)
+            
+            # Collect financial data
+            financial_data = self._collect_financial_summary_data(branch_id, start_date, end_date)
+            
+            # Generate executive insights
+            executive_insights = self._generate_executive_insights(financial_data)
+            
+            # Create report
+            if format.lower() == "pdf":
+                file_path = self._create_pdf_financial_report(financial_data, executive_insights, start_date, end_date)
+            elif format.lower() == "excel":
+                file_path = self._create_excel_financial_report(financial_data, executive_insights, start_date, end_date)
+            else:
+                return {"error": "Unsupported format"}
+            
+            return {
+                "success": True,
+                "file_path": file_path,
+                "report_type": "financial_summary",
+                "scope": "Organization-wide" if not branch_id else f"Branch {branch_id}",
+                "period": f"{start_date} to {end_date}",
+                "total_portfolio": financial_data["summary"]["total_portfolio"],
+                "collection_rate": financial_data["summary"]["collection_rate"],
+                "generated_at": datetime.utcnow().isoformat(),
+                "executive_summary": executive_insights["key_points"]
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating financial report: {e}")
+            return {"error": str(e)}
+    
+    # ==================== DATA COLLECTION METHODS ====================
+    
+    def _collect_branch_data(self, branch_id: int, start_date: date, end_date: date) -> Dict[str, Any]:
+        """Collect comprehensive branch data for reporting"""
         
         # Get branch customers
-        branch_customers = db.query(User).filter(
+        branch_customers = self.db.query(User).filter(
             User.branch_id == branch_id,
             User.role == UserRole.CUSTOMER
         ).all()
+        
         customer_ids = [c.id for c in branch_customers]
         
-        # Loans analysis
-        period_loans = db.query(Loan).filter(
+        # Loan data
+        branch_loans = self.db.query(Loan).filter(
             Loan.borrower_id.in_(customer_ids),
-            Loan.start_date >= start_date,
-            Loan.start_date <= end_date
+            Loan.created_at.between(start_date, end_date)
         ).all()
         
-        all_branch_loans = db.query(Loan).filter(
-            Loan.borrower_id.in_(customer_ids)
-        ).all()
-        
-        # Payments analysis
-        period_payments = db.query(Payment).join(Loan).filter(
+        # Payment data
+        branch_payments = self.db.query(Payment).join(Loan).filter(
             Loan.borrower_id.in_(customer_ids),
-            Payment.payment_date >= start_date,
-            Payment.payment_date <= end_date,
-            Payment.status == 'confirmed'
+            Payment.payment_date.between(start_date, end_date),
+            Payment.status == "confirmed"
         ).all()
         
-        # Calculate metrics
-        loans_disbursed = len(period_loans)
-        amount_disbursed = sum(float(loan.total_amount) for loan in period_loans)
-        
-        payments_received = len(period_payments)
-        amount_collected = sum(float(payment.amount) for payment in period_payments)
-        
-        # Outstanding portfolio
-        active_loans = [loan for loan in all_branch_loans if loan.status in ['active', 'arrears']]
-        total_outstanding = sum(float(loan.balance) for loan in active_loans)
-        
-        # Savings analysis
-        savings_accounts = db.query(SavingsAccount).join(User).filter(
-            User.id.in_(customer_ids)
+        # Savings data
+        branch_savings = self.db.query(SavingsAccount).filter(
+            SavingsAccount.user_id.in_(customer_ids)
         ).all()
         
-        total_savings = sum(float(acc.balance) for acc in savings_accounts)
-        active_customers = len([acc for acc in savings_accounts if acc.registration_fee_paid])
+        # Group data
+        branch_groups = self.db.query(Group).filter(
+            Group.branch_id == branch_id
+        ).all()
         
-        # Collection efficiency
-        collection_rate = (amount_collected / amount_disbursed * 100) if amount_disbursed > 0 else 0
+        # Inventory data
+        branch_inventory = self.db.query(BranchInventory).filter(
+            BranchInventory.branch_id == branch_id
+        ).all()
         
         return {
-            "period_summary": {
-                "loans_disbursed": loans_disbursed,
-                "amount_disbursed": amount_disbursed,
-                "payments_received": payments_received,
-                "amount_collected": amount_collected,
-                "collection_rate": round(collection_rate, 2)
-            },
-            "portfolio_status": {
-                "total_outstanding": total_outstanding,
-                "active_loans": len(active_loans),
+            "branch_id": branch_id,
+            "period": {"start": start_date, "end": end_date},
+            "customers": branch_customers,
+            "loans": branch_loans,
+            "payments": branch_payments,
+            "savings": branch_savings,
+            "groups": branch_groups,
+            "inventory": branch_inventory,
+            "summary": {
                 "total_customers": len(branch_customers),
-                "active_customers": active_customers,
-                "total_savings": total_savings
-            },
-            "profitability": {
-                "interest_income": sum(float(loan.interest_amount) for loan in period_loans),
-                "charge_fee_income": sum(float(loan.charge_fee_amount) for loan in period_loans),
-                "gross_margin": sum(float(loan.interest_amount + loan.charge_fee_amount) for loan in period_loans)
+                "total_loans": len(branch_loans),
+                "active_loans": len([l for l in branch_loans if l.status == "active"]),
+                "completed_loans": len([l for l in branch_loans if l.status == "completed"]),
+                "arrears_loans": len([l for l in branch_loans if l.status == "arrears"]),
+                "total_disbursed": sum(float(loan.total_amount) for loan in branch_loans),
+                "total_collected": sum(float(payment.amount) for payment in branch_payments),
+                "total_savings": sum(float(acc.balance) for acc in branch_savings),
+                "total_groups": len(branch_groups),
+                "inventory_value": sum(
+                    float(item.loan_product.selling_price) * item.current_quantity
+                    for item in branch_inventory
+                )
             }
         }
     
-    def _get_branch_customer_analytics(self, db: Session, branch_id: int,
-                                     start_date: date, end_date: date) -> Dict[str, Any]:
-        """Get customer analytics for branch"""
+    def _collect_customer_data(self, customer_id: int) -> Dict[str, Any]:
+        """Collect comprehensive customer data"""
         
-        branch_customers = db.query(User).filter(
-            User.branch_id == branch_id,
-            User.role == UserRole.CUSTOMER
+        customer = self.db.query(User).filter(User.id == customer_id).first()
+        
+        # Get customer's loans
+        customer_loans = self.db.query(Loan).filter(
+            Loan.borrower_id == customer_id
         ).all()
         
-        # Customer segmentation
-        segments = {
-            "new_customers": [],
-            "active_customers": [],
-            "dormant_customers": [],
-            "high_value_customers": []
-        }
+        # Get payment history
+        customer_payments = self.db.query(Payment).join(Loan).filter(
+            Loan.borrower_id == customer_id,
+            Payment.status == "confirmed"
+        ).order_by(Payment.payment_date.desc()).all()
         
-        for customer in branch_customers:
-            # Check if new customer (registered in period)
-            if start_date <= customer.created_at.date() <= end_date:
-                segments["new_customers"].append(customer)
-            
-            # Check if active (has recent transactions)
-            recent_activity = db.query(Payment).join(Loan).filter(
-                Loan.borrower_id == customer.id,
-                Payment.payment_date >= end_date - timedelta(days=30),
-                Payment.status == 'confirmed'
-            ).first()
-            
-            if recent_activity:
-                segments["active_customers"].append(customer)
-            else:
-                segments["dormant_customers"].append(customer)
-            
-            # Check if high value (savings > 10,000)
-            if customer.savings_account and customer.savings_account.balance >= 10000:
-                segments["high_value_customers"].append(customer)
+        # Get account data
+        savings_account = customer.savings_account
+        drawdown_account = customer.drawdown_account
         
-        # Customer behavior analysis
-        avg_loan_size = db.query(func.avg(Loan.total_amount)).join(User).filter(
-            User.branch_id == branch_id,
-            Loan.start_date >= start_date,
-            Loan.start_date <= end_date
-        ).scalar() or 0
-        
-        avg_savings_balance = db.query(func.avg(SavingsAccount.balance)).join(User).filter(
-            User.branch_id == branch_id
-        ).scalar() or 0
+        # Get transaction history
+        from app.models.loan import Transaction
+        transactions = self.db.query(Transaction).filter(
+            Transaction.user_id == customer_id
+        ).order_by(Transaction.created_at.desc()).limit(50).all()
         
         return {
-            "total_customers": len(branch_customers),
-            "customer_segments": {
-                "new_customers": len(segments["new_customers"]),
-                "active_customers": len(segments["active_customers"]),
-                "dormant_customers": len(segments["dormant_customers"]),
-                "high_value_customers": len(segments["high_value_customers"])
-            },
-            "customer_behavior": {
-                "avg_loan_size": float(avg_loan_size),
-                "avg_savings_balance": float(avg_savings_balance),
-                "customer_retention_rate": (len(segments["active_customers"]) / len(branch_customers) * 100) if branch_customers else 0
+            "customer": customer,
+            "loans": customer_loans,
+            "payments": customer_payments,
+            "savings_account": savings_account,
+            "drawdown_account": drawdown_account,
+            "transactions": transactions,
+            "summary": {
+                "total_loans": len(customer_loans),
+                "active_loans": len([l for l in customer_loans if l.status == "active"]),
+                "completed_loans": len([l for l in customer_loans if l.status == "completed"]),
+                "total_borrowed": sum(float(loan.total_amount) for loan in customer_loans),
+                "total_paid": sum(float(payment.amount) for payment in customer_payments),
+                "current_balance": sum(float(loan.balance) for loan in customer_loans if loan.status in ["active", "arrears"]),
+                "savings_balance": float(savings_account.balance) if savings_account else 0,
+                "drawdown_balance": float(drawdown_account.balance) if drawdown_account else 0
             }
         }
     
-    def _generate_report_charts(self, report_data: Dict[str, Any]) -> Dict[str, str]:
-        """Generate charts for reports"""
-        charts = {}
+    def _collect_financial_summary_data(self, branch_id: Optional[int], 
+                                      start_date: date, end_date: date) -> Dict[str, Any]:
+        """Collect organization-wide financial data"""
         
+        # Base queries
+        user_query = self.db.query(User).filter(User.role == UserRole.CUSTOMER)
+        loan_query = self.db.query(Loan)
+        payment_query = self.db.query(Payment).filter(Payment.status == "confirmed")
+        
+        # Apply branch filtering if specified
+        if branch_id:
+            branch_customers = user_query.filter(User.branch_id == branch_id).all()
+            customer_ids = [c.id for c in branch_customers]
+            loan_query = loan_query.filter(Loan.borrower_id.in_(customer_ids))
+            payment_query = payment_query.join(Loan).filter(Loan.borrower_id.in_(customer_ids))
+        
+        # Apply date filtering
+        loan_query = loan_query.filter(Loan.created_at.between(start_date, end_date))
+        payment_query = payment_query.filter(Payment.payment_date.between(start_date, end_date))
+        
+        # Execute queries
+        all_customers = user_query.all()
+        period_loans = loan_query.all()
+        period_payments = payment_query.all()
+        
+        # Calculate comprehensive metrics
+        total_customers = len(all_customers)
+        total_loans_disbursed = len(period_loans)
+        total_amount_disbursed = sum(float(loan.total_amount) for loan in period_loans)
+        total_payments_received = len(period_payments)
+        total_amount_collected = sum(float(payment.amount) for payment in period_payments)
+        
+        # Collection rate
+        collection_rate = (total_amount_collected / total_amount_disbursed * 100) if total_amount_disbursed > 0 else 0
+        
+        # Active portfolio
+        active_loans = [loan for loan in period_loans if loan.status == "active"]
+        arrears_loans = [loan for loan in period_loans if loan.status == "arrears"]
+        completed_loans = [loan for loan in period_loans if loan.status == "completed"]
+        
+        outstanding_balance = sum(float(loan.balance) for loan in active_loans + arrears_loans)
+        arrears_amount = sum(float(loan.balance) for loan in arrears_loans)
+        
+        # Branch breakdown
+        branch_breakdown = []
+        if not branch_id:  # Organization-wide report
+            branches = self.db.query(Branch).filter(Branch.is_active == True).all()
+            for branch in branches:
+                branch_kpis = analytics_engine._calculate_branch_kpis(branch.id)
+                branch_breakdown.append({
+                    "branch_id": branch.id,
+                    "branch_name": branch.name,
+                    "manager_name": f"{branch.manager.first_name} {branch.manager.last_name}" if branch.manager else "No Manager",
+                    **branch_kpis
+                })
+        
+        # Product performance
+        from app.models.loan import LoanProduct, LoanApplicationProduct
+        
+        product_performance = []
+        products = self.db.query(LoanProduct).filter(LoanProduct.is_active == True).all()
+        
+        for product in products:
+            # Get loan applications with this product in the period
+            product_applications = self.db.query(LoanApplicationProduct).join(
+                LoanApplication
+            ).filter(
+                LoanApplicationProduct.loan_product_id == product.id,
+                LoanApplication.created_at.between(start_date, end_date)
+            ).all()
+            
+            total_quantity = sum(app.quantity for app in product_applications)
+            total_value = sum(float(app.total_price) for app in product_applications)
+            
+            product_performance.append({
+                "product_id": product.id,
+                "product_name": product.name,
+                "category_name": product.category.name,
+                "total_loans": len(product_applications),
+                "total_quantity": total_quantity,
+                "total_value": total_value,
+                "avg_loan_size": total_value / len(product_applications) if product_applications else 0
+            })
+        
+        return {
+            "summary": {
+                "total_customers": total_customers,
+                "total_loans": total_loans_disbursed,
+                "total_amount_disbursed": total_amount_disbursed,
+                "total_payments": total_payments_received,
+                "total_amount_collected": total_amount_collected,
+                "collection_rate": round(collection_rate, 2),
+                "outstanding_balance": outstanding_balance,
+                "arrears_amount": arrears_amount,
+                "arrears_rate": round((arrears_amount / outstanding_balance * 100) if outstanding_balance > 0 else 0, 2)
+            },
+            "loan_breakdown": {
+                "active": len(active_loans),
+                "completed": len(completed_loans),
+                "arrears": len(arrears_loans)
+            },
+            "branch_breakdown": branch_breakdown,
+            "product_performance": sorted(product_performance, key=lambda x: x["total_value"], reverse=True),
+            "period": {"start": start_date.isoformat(), "end": end_date.isoformat()}
+        }
+    
+    def generate_risk_assessment_report(self, branch_id: Optional[int] = None,
+                                      format: str = "pdf") -> Dict[str, Any]:
+        """Generate comprehensive risk assessment report with predictive analytics"""
         try:
-            # Chart 1: Monthly Payment Trends
-            fig, ax = plt.subplots(figsize=(10, 6))
+            # Get customers for analysis
+            customer_query = self.db.query(User).filter(User.role == UserRole.CUSTOMER)
             
-            # Sample data for demonstration
-            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-            amounts = [50000, 75000, 60000, 85000, 90000, 70000]
+            if branch_id:
+                customer_query = customer_query.filter(User.branch_id == branch_id)
             
-            ax.plot(months, amounts, marker='o', linewidth=2, markersize=8)
-            ax.set_title('Monthly Payment Collections', fontsize=16, fontweight='bold')
-            ax.set_xlabel('Month')
-            ax.set_ylabel('Amount (KES)')
-            ax.grid(True, alpha=0.3)
+            customers = customer_query.all()
             
-            # Save chart
-            chart_buffer = BytesIO()
-            plt.savefig(chart_buffer, format='png', dpi=300, bbox_inches='tight')
-            chart_buffer.seek(0)
-            chart_base64 = base64.b64encode(chart_buffer.getvalue()).decode()
-            charts["payment_trends"] = chart_base64
-            plt.close()
+            # Analyze each customer
+            risk_assessments = []
+            risk_distribution = {"very_low": 0, "low": 0, "medium": 0, "high": 0, "very_high": 0}
             
-            # Chart 2: Risk Distribution Pie Chart
-            fig, ax = plt.subplots(figsize=(8, 8))
+            for customer in customers:
+                risk_data = analytics_engine.calculate_customer_risk_score(customer.id)
+                
+                if "error" not in risk_data:
+                    risk_assessments.append(risk_data)
+                    
+                    # Categorize risk
+                    score = risk_data["risk_score"]
+                    if score >= 80:
+                        risk_distribution["very_low"] += 1
+                    elif score >= 65:
+                        risk_distribution["low"] += 1
+                    elif score >= 50:
+                        risk_distribution["medium"] += 1
+                    elif score >= 35:
+                        risk_distribution["high"] += 1
+                    else:
+                        risk_distribution["very_high"] += 1
             
-            risk_categories = ['Low Risk', 'Medium Risk', 'High Risk', 'Very High Risk']
-            risk_values = [60, 25, 12, 3]
-            colors_pie = ['#2E8B57', '#FFD700', '#FF8C00', '#DC143C']
+            # Sort by risk score (highest risk first)
+            risk_assessments.sort(key=lambda x: x["risk_score"])
             
-            ax.pie(risk_values, labels=risk_categories, autopct='%1.1f%%', 
-                  colors=colors_pie, startangle=90)
-            ax.set_title('Portfolio Risk Distribution', fontsize=16, fontweight='bold')
+            # Calculate portfolio risk metrics
+            if risk_assessments:
+                avg_risk_score = np.mean([ra["risk_score"] for ra in risk_assessments])
+                risk_variance = np.var([ra["risk_score"] for ra in risk_assessments])
+                
+                # High-risk customers (score < 40)
+                high_risk_customers = [ra for ra in risk_assessments if ra["risk_score"] < 40]
+                
+                # Get their total outstanding loans
+                high_risk_ids = [ra["customer_id"] for ra in high_risk_customers]
+                high_risk_loans = self.db.query(Loan).filter(
+                    Loan.borrower_id.in_(high_risk_ids),
+                    Loan.status.in_(["active", "arrears"])
+                ).all()
+                
+                high_risk_amount = sum(float(loan.balance) for loan in high_risk_loans)
+            else:
+                avg_risk_score = 0
+                risk_variance = 0
+                high_risk_amount = 0
+                high_risk_customers = []
             
-            chart_buffer = BytesIO()
-            plt.savefig(chart_buffer, format='png', dpi=300, bbox_inches='tight')
-            chart_buffer.seek(0)
-            chart_base64 = base64.b64encode(chart_buffer.getvalue()).decode()
-            charts["risk_distribution"] = chart_base64
-            plt.close()
+            # Generate forecasts
+            arrears_forecast = analytics_engine.forecast_arrears_risk(30, branch_id)
             
-            # Chart 3: Collection Rate Trends
-            fig, ax = plt.subplots(figsize=(10, 6))
+            # Create report
+            if format.lower() == "pdf":
+                file_path = self._create_pdf_risk_report(
+                    risk_assessments, risk_distribution, arrears_forecast
+                )
+            elif format.lower() == "excel":
+                file_path = self._create_excel_risk_report(
+                    risk_assessments, risk_distribution, arrears_forecast
+                )
+            else:
+                return {"error": "Unsupported format"}
             
-            weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-            collection_rates = [95, 87, 92, 89]
-            target_line = [85] * len(weeks)
-            
-            ax.bar(weeks, collection_rates, alpha=0.7, color='skyblue', label='Actual')
-            ax.plot(weeks, target_line, 'r--', linewidth=2, label='Target (85%)')
-            ax.set_title('Weekly Collection Rate Performance', fontsize=16, fontweight='bold')
-            ax.set_ylabel('Collection Rate (%)')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
-            
-            chart_buffer = BytesIO()
-            plt.savefig(chart_buffer, format='png', dpi=300, bbox_inches='tight')
-            chart_buffer.seek(0)
-            chart_base64 = base64.b64encode(chart_buffer.getvalue()).decode()
-            charts["collection_trends"] = chart_base64
-            plt.close()
+            return {
+                "success": True,
+                "file_path": file_path,
+                "report_type": "risk_assessment",
+                "scope": "Organization-wide" if not branch_id else f"Branch {branch_id}",
+                "total_customers_analyzed": len(risk_assessments),
+                "average_risk_score": round(avg_risk_score, 2),
+                "high_risk_customers": len(high_risk_customers),
+                "amount_at_high_risk": high_risk_amount,
+                "risk_distribution": risk_distribution,
+                "predicted_arrears_amount": arrears_forecast.get("summary", {}).get("predicted_arrears_amount", 0),
+                "generated_at": datetime.utcnow().isoformat()
+            }
             
         except Exception as e:
-            print(f"Error generating charts: {e}")
-        
-        return charts
+            logger.error(f"Error generating risk assessment report: {e}")
+            return {"error": str(e)}
     
-    def _export_to_pdf(self, report_data: Dict[str, Any]) -> str:
-        """Export report to PDF format"""
+    # ==================== AI INSIGHTS GENERATION ====================
+    
+    def _generate_branch_insights(self, report_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate AI-powered insights for branch performance"""
         
-        # Create filename
-        branch_name = report_data["branch_info"]["name"].replace(" ", "_")
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"branch_report_{branch_name}_{timestamp}.pdf"
+        summary = report_data["summary"]
+        
+        insights = {
+            "performance_rating": "",
+            "key_strengths": [],
+            "areas_for_improvement": [],
+            "strategic_recommendations": [],
+            "risk_alerts": [],
+            "growth_opportunities": []
+        }
+        
+        # Performance rating
+        collection_rate = summary["collection_rate"]
+        if collection_rate >= 95:
+            insights["performance_rating"] = "Excellent"
+        elif collection_rate >= 85:
+            insights["performance_rating"] = "Good"
+        elif collection_rate >= 75:
+            insights["performance_rating"] = "Average"
+        else:
+            insights["performance_rating"] = "Needs Improvement"
+        
+        # Identify strengths
+        if collection_rate >= 90:
+            insights["key_strengths"].append(f"Outstanding collection rate of {collection_rate:.1f}%")
+        
+        if summary["arrears_rate"] <= 5:
+            insights["key_strengths"].append(f"Low arrears rate of {summary['arrears_rate']:.1f}%")
+        
+        if summary["total_customers"] >= 100:
+            insights["key_strengths"].append(f"Strong customer base of {summary['total_customers']} customers")
+        
+        # Identify improvement areas
+        if collection_rate < 80:
+            insights["areas_for_improvement"].append("Collection rate below industry standard")
+            insights["strategic_recommendations"].append("Implement stricter credit assessment and follow-up procedures")
+        
+        if summary["arrears_rate"] > 10:
+            insights["areas_for_improvement"].append("High arrears rate indicating collection challenges")
+            insights["strategic_recommendations"].append("Deploy dedicated collection team and early intervention strategies")
+        
+        # Growth opportunities
+        avg_loan_size = summary["total_disbursed"] / summary["total_loans"] if summary["total_loans"] > 0 else 0
+        if avg_loan_size < 5000:
+            insights["growth_opportunities"].append("Opportunity to increase average loan size through customer education")
+        
+        if summary["total_savings"] / summary["total_customers"] < 2000:
+            insights["growth_opportunities"].append("Focus on savings mobilization to increase loan capacity")
+        
+        return insights
+    
+    def _generate_executive_insights(self, financial_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate executive-level insights for financial report"""
+        
+        summary = financial_data["summary"]
+        
+        insights = {
+            "key_points": [],
+            "critical_actions": [],
+            "investment_recommendations": [],
+            "risk_mitigation": [],
+            "growth_strategy": []
+        }
+        
+        # Key performance points
+        insights["key_points"].append(
+            f"Portfolio size: KES {summary['total_portfolio']:,.2f} across {summary['total_loans']} loans"
+        )
+        insights["key_points"].append(
+            f"Collection efficiency: {summary['collection_rate']:.1f}% with {summary['total_payments']} payments processed"
+        )
+        
+        # Critical actions based on performance
+        if summary["collection_rate"] < 85:
+            insights["critical_actions"].append("Immediate focus required on collection processes")
+        
+        if summary["arrears_rate"] > 15:
+            insights["critical_actions"].append("Deploy emergency arrears management protocol")
+        
+        # Investment recommendations
+        if summary["collection_rate"] > 90 and summary["arrears_rate"] < 5:
+            insights["investment_recommendations"].append("Portfolio performance supports expansion into new markets")
+            insights["investment_recommendations"].append("Consider increasing loan limits and introducing new products")
+        
+        # Risk mitigation
+        if summary["arrears_amount"] > summary["total_portfolio"] * 0.1:
+            insights["risk_mitigation"].append("Implement enhanced credit scoring and early warning systems")
+        
+        return insights
+    
+    # ==================== PDF REPORT GENERATION ====================
+    
+    def _create_pdf_branch_report(self, branch: Branch, report_data: Dict[str, Any], 
+                                insights: Dict[str, Any]) -> str:
+        """Create beautifully formatted PDF branch report"""
+        
+        filename = f"branch_report_{branch.code}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         file_path = os.path.join(self.reports_dir, filename)
         
         # Create PDF document
@@ -334,488 +593,149 @@ class ReportingEngine:
             parent=styles['Heading1'],
             fontSize=24,
             spaceAfter=30,
-            alignment=TA_CENTER
+            textColor=colors.darkblue,
+            alignment=1  # Center alignment
         )
         
         story.append(Paragraph("Kim Loans Management System", title_style))
-        story.append(Paragraph("Branch Performance Report", title_style))
+        story.append(Paragraph(f"Branch Performance Report - {branch.name}", styles['Heading2']))
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # Branch Information
-        branch_info = report_data["branch_info"]
-        branch_table_data = [
-            ["Branch Name", branch_info["name"]],
-            ["Branch Code", branch_info["code"]],
-            ["Manager", branch_info["manager"]],
-            ["Procurement Officer", branch_info["procurement_officer"]],
-            ["Report Period", branch_info["report_period"]],
-            ["Generated", branch_info["generated_at"]]
+        # Executive Summary
+        story.append(Paragraph("Executive Summary", styles['Heading2']))
+        summary = report_data["summary"]
+        
+        summary_data = [
+            ["Metric", "Value", "Performance"],
+            ["Total Customers", f"{summary['total_customers']:,}", "📊"],
+            ["Active Loans", f"{summary['active_loans']:,}", "💰"],
+            ["Collection Rate", f"{summary['collection_rate']:.1f}%", "📈"],
+            ["Total Portfolio", f"KES {summary['total_disbursed']:,.2f}", "🏦"],
+            ["Arrears Rate", f"{report_data.get('arrears_rate', 0):.1f}%", "⚠️"]
         ]
         
-        branch_table = Table(branch_table_data, colWidths=[2*inch, 4*inch])
-        branch_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
-        story.append(branch_table)
-        story.append(Spacer(1, 30))
-        
-        # Financial Summary
-        story.append(Paragraph("Financial Summary", styles['Heading2']))
-        financial_metrics = report_data["financial_metrics"]["period_summary"]
-        
-        financial_table_data = [
-            ["Metric", "Value", "Target", "Status"],
-            ["Loans Disbursed", str(financial_metrics["loans_disbursed"]), "N/A", "✓"],
-            ["Amount Disbursed", f"KES {financial_metrics['amount_disbursed']:,.2f}", "N/A", "✓"],
-            ["Payments Received", str(financial_metrics["payments_received"]), "N/A", "✓"],
-            ["Amount Collected", f"KES {financial_metrics['amount_collected']:,.2f}", "N/A", "✓"],
-            ["Collection Rate", f"{financial_metrics['collection_rate']:.1f}%", "85%", 
-             "✓" if financial_metrics["collection_rate"] >= 85 else "⚠"]
-        ]
-        
-        financial_table = Table(financial_table_data, colWidths=[2*inch, 1.5*inch, 1*inch, 0.8*inch])
-        financial_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.navy),
+        summary_table = Table(summary_data)
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10)
-        ]))
-        
-        story.append(financial_table)
-        story.append(Spacer(1, 20))
-        
-        # Add charts if available
-        if "charts" in report_data:
-            for chart_name, chart_data in report_data["charts"].items():
-                if chart_data:
-                    try:
-                        # Decode base64 chart and add to PDF
-                        chart_buffer = BytesIO(base64.b64decode(chart_data))
-                        chart_image = Image(chart_buffer, width=6*inch, height=4*inch)
-                        story.append(chart_image)
-                        story.append(Spacer(1, 20))
-                    except Exception as e:
-                        print(f"Error adding chart {chart_name}: {e}")
-        
-        # Build PDF
-        doc.build(story)
-        
-        return file_path
-    
-    def _export_to_excel(self, report_data: Dict[str, Any]) -> str:
-        """Export report to Excel format"""
-        
-        # Create filename
-        branch_name = report_data["branch_info"]["name"].replace(" ", "_")
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"branch_report_{branch_name}_{timestamp}.xlsx"
-        file_path = os.path.join(self.reports_dir, filename)
-        
-        # Create Excel writer
-        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            
-            # Branch Information Sheet
-            branch_df = pd.DataFrame([
-                ["Branch Name", report_data["branch_info"]["name"]],
-                ["Branch Code", report_data["branch_info"]["code"]],
-                ["Manager", report_data["branch_info"]["manager"]],
-                ["Report Period", report_data["branch_info"]["report_period"]],
-                ["Generated", report_data["branch_info"]["generated_at"]]
-            ], columns=["Metric", "Value"])
-            
-            branch_df.to_excel(writer, sheet_name='Branch Info', index=False)
-            
-            # Financial Summary Sheet
-            financial_data = report_data["financial_metrics"]["period_summary"]
-            financial_df = pd.DataFrame([
-                ["Loans Disbursed", financial_data["loans_disbursed"]],
-                ["Amount Disbursed", financial_data["amount_disbursed"]],
-                ["Payments Received", financial_data["payments_received"]],
-                ["Amount Collected", financial_data["amount_collected"]],
-                ["Collection Rate", f"{financial_data['collection_rate']:.2f}%"]
-            ], columns=["Metric", "Value"])
-            
-            financial_df.to_excel(writer, sheet_name='Financial Summary', index=False)
-            
-            # Customer Analytics Sheet
-            if "customer_analytics" in report_data:
-                customer_data = report_data["customer_analytics"]
-                customer_df = pd.DataFrame([
-                    ["Total Customers", customer_data["total_customers"]],
-                    ["New Customers", customer_data["customer_segments"]["new_customers"]],
-                    ["Active Customers", customer_data["customer_segments"]["active_customers"]],
-                    ["Dormant Customers", customer_data["customer_segments"]["dormant_customers"]],
-                    ["High Value Customers", customer_data["customer_segments"]["high_value_customers"]],
-                    ["Average Loan Size", f"KES {customer_data['customer_behavior']['avg_loan_size']:,.2f}"],
-                    ["Average Savings", f"KES {customer_data['customer_behavior']['avg_savings_balance']:,.2f}"]
-                ], columns=["Metric", "Value"])
-                
-                customer_df.to_excel(writer, sheet_name='Customer Analytics', index=False)
-            
-            # Portfolio Analysis Sheet
-            if "portfolio_analysis" in report_data:
-                portfolio_data = report_data["portfolio_analysis"]
-                portfolio_df = pd.DataFrame([
-                    ["Active Loans", portfolio_data.get("active_loans", 0)],
-                    ["Completed Loans", portfolio_data.get("completed_loans", 0)],
-                    ["Arrears Loans", portfolio_data.get("arrears_loans", 0)],
-                    ["Total Outstanding", f"KES {portfolio_data.get('total_outstanding', 0):,.2f}"],
-                    ["PAR 30", f"KES {portfolio_data.get('par_30', 0):,.2f}"],
-                    ["PAR 90", f"KES {portfolio_data.get('par_90', 0):,.2f}"]
-                ], columns=["Metric", "Value"])
-                
-                portfolio_df.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
-        
-        return file_path
-    
-    def generate_individual_statement(self, user_id: int, 
-                                   start_date: date, end_date: date,
-                                   format: str = "pdf") -> Dict[str, Any]:
-        """Generate individual customer statement"""
-        db = SessionLocal()
-        try:
-            # Get customer
-            customer = db.query(User).filter(User.id == user_id).first()
-            if not customer:
-                return {"error": "Customer not found"}
-            
-            # Get account information
-            savings_account = customer.savings_account
-            drawdown_account = customer.drawdown_account
-            
-            # Get loans
-            customer_loans = db.query(Loan).filter(
-                Loan.borrower_id == user_id,
-                Loan.start_date >= start_date,
-                Loan.start_date <= end_date
-            ).all()
-            
-            # Get payments
-            customer_payments = db.query(Payment).join(Loan).filter(
-                Loan.borrower_id == user_id,
-                Payment.payment_date >= start_date,
-                Payment.payment_date <= end_date,
-                Payment.status == 'confirmed'
-            ).all()
-            
-            # Get transactions
-            from app.models.loan import Transaction
-            customer_transactions = db.query(Transaction).filter(
-                Transaction.user_id == user_id,
-                Transaction.created_at >= datetime.combine(start_date, datetime.min.time()),
-                Transaction.created_at <= datetime.combine(end_date, datetime.max.time())
-            ).all()
-            
-            statement_data = {
-                "customer_info": {
-                    "name": f"{customer.first_name} {customer.last_name}",
-                    "phone": customer.phone_number,
-                    "account_number": customer.unique_account_number,
-                    "statement_period": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-                },
-                "account_summary": {
-                    "savings_balance": float(savings_account.balance) if savings_account else 0,
-                    "drawdown_balance": float(drawdown_account.balance) if drawdown_account else 0,
-                    "loan_limit": float(savings_account.loan_limit) if savings_account else 0,
-                    "registration_status": savings_account.status if savings_account else "inactive"
-                },
-                "loans": [
-                    {
-                        "loan_number": loan.loan_number,
-                        "amount": float(loan.total_amount),
-                        "balance": float(loan.balance),
-                        "status": loan.status,
-                        "start_date": loan.start_date.strftime('%Y-%m-%d'),
-                        "due_date": loan.due_date.strftime('%Y-%m-%d')
-                    }
-                    for loan in customer_loans
-                ],
-                "payments": [
-                    {
-                        "payment_number": payment.payment_number,
-                        "amount": float(payment.amount),
-                        "loan_number": payment.loan.loan_number,
-                        "payment_date": payment.payment_date.strftime('%Y-%m-%d'),
-                        "method": payment.payment_method
-                    }
-                    for payment in customer_payments
-                ],
-                "transactions": [
-                    {
-                        "transaction_number": tx.transaction_number,
-                        "type": tx.transaction_type,
-                        "account": tx.account_type,
-                        "amount": float(tx.amount),
-                        "balance_after": float(tx.balance_after),
-                        "date": tx.created_at.strftime('%Y-%m-%d %H:%M'),
-                        "description": tx.description
-                    }
-                    for tx in customer_transactions
-                ]
-            }
-            
-            # Export based on format
-            if format.lower() == "pdf":
-                file_path = self._export_statement_to_pdf(statement_data)
-            elif format.lower() == "excel":
-                file_path = self._export_statement_to_excel(statement_data)
-            else:
-                return {"error": "Unsupported format"}
-            
-            return {
-                "success": True,
-                "file_path": file_path,
-                "customer_name": statement_data["customer_info"]["name"]
-            }
-            
-        except Exception as e:
-            return {"error": str(e)}
-        finally:
-            db.close()
-    
-    def _export_statement_to_pdf(self, statement_data: Dict[str, Any]) -> str:
-        """Export customer statement to PDF"""
-        
-        customer_name = statement_data["customer_info"]["name"].replace(" ", "_")
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"statement_{customer_name}_{timestamp}.pdf"
-        file_path = os.path.join(self.reports_dir, filename)
-        
-        doc = SimpleDocTemplate(file_path, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = []
-        
-        # Header
-        story.append(Paragraph("Kim Loans Management System", styles['Title']))
-        story.append(Paragraph("Customer Account Statement", styles['Heading1']))
-        story.append(Spacer(1, 20))
-        
-        # Customer Info
-        customer_info = statement_data["customer_info"]
-        info_data = [
-            ["Customer Name", customer_info["name"]],
-            ["Phone Number", customer_info["phone"]],
-            ["Account Number", customer_info["account_number"]],
-            ["Statement Period", customer_info["statement_period"]]
-        ]
-        
-        info_table = Table(info_data, colWidths=[2*inch, 3*inch])
-        info_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10)
-        ]))
-        
-        story.append(info_table)
-        story.append(Spacer(1, 20))
-        
-        # Account Summary
-        story.append(Paragraph("Account Summary", styles['Heading2']))
-        account_data = statement_data["account_summary"]
-        
-        summary_data = [
-            ["Account Type", "Balance", "Status"],
-            ["Savings Account", f"KES {account_data['savings_balance']:,.2f}", account_data["registration_status"]],
-            ["Drawdown Account", f"KES {account_data['drawdown_balance']:,.2f}", "Active"],
-            ["Available Loan Limit", f"KES {account_data['loan_limit']:,.2f}", "Current"]
-        ]
-        
-        summary_table = Table(summary_data, colWidths=[2*inch, 1.5*inch, 1.5*inch])
-        summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER')
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
         ]))
         
         story.append(summary_table)
         story.append(Spacer(1, 20))
         
-        # Loans Section
-        if statement_data["loans"]:
-            story.append(Paragraph("Active Loans", styles['Heading2']))
-            
-            loans_data = [["Loan Number", "Amount", "Balance", "Status", "Due Date"]]
-            for loan in statement_data["loans"]:
-                loans_data.append([
-                    loan["loan_number"],
-                    f"KES {loan['amount']:,.2f}",
-                    f"KES {loan['balance']:,.2f}",
-                    loan["status"].title(),
-                    loan["due_date"]
-                ])
-            
-            loans_table = Table(loans_data, colWidths=[1.5*inch, 1.2*inch, 1.2*inch, 1*inch, 1.1*inch])
-            loans_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgreen),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9)
-            ]))
-            
-            story.append(loans_table)
-            story.append(Spacer(1, 20))
+        # Performance Insights
+        story.append(Paragraph("AI-Powered Performance Insights", styles['Heading2']))
+        story.append(Paragraph(f"Overall Rating: {insights['performance_rating']}", styles['Heading3']))
         
-        # Payments Section
-        if statement_data["payments"]:
-            story.append(Paragraph("Payment History", styles['Heading2']))
-            
-            payments_data = [["Payment #", "Amount", "Loan #", "Date", "Method"]]
-            for payment in statement_data["payments"]:
-                payments_data.append([
-                    payment["payment_number"],
-                    f"KES {payment['amount']:,.2f}",
-                    payment["loan_number"],
-                    payment["payment_date"],
-                    payment["method"].title()
-                ])
-            
-            payments_table = Table(payments_data, colWidths=[1.5*inch, 1.2*inch, 1.2*inch, 1*inch, 1.1*inch])
-            payments_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightyellow),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9)
-            ]))
-            
-            story.append(payments_table)
+        # Key Strengths
+        if insights["key_strengths"]:
+            story.append(Paragraph("Key Strengths:", styles['Heading4']))
+            for strength in insights["key_strengths"]:
+                story.append(Paragraph(f"✅ {strength}", styles['Normal']))
+            story.append(Spacer(1, 10))
+        
+        # Areas for Improvement
+        if insights["areas_for_improvement"]:
+            story.append(Paragraph("Areas for Improvement:", styles['Heading4']))
+            for improvement in insights["areas_for_improvement"]:
+                story.append(Paragraph(f"🔧 {improvement}", styles['Normal']))
+            story.append(Spacer(1, 10))
+        
+        # Strategic Recommendations
+        if insights["strategic_recommendations"]:
+            story.append(Paragraph("Strategic Recommendations:", styles['Heading4']))
+            for recommendation in insights["strategic_recommendations"]:
+                story.append(Paragraph(f"🎯 {recommendation}", styles['Normal']))
         
         # Build PDF
         doc.build(story)
         
         return file_path
     
-    def generate_system_report(self, report_type: str, 
-                             parameters: Dict[str, Any],
-                             format: str = "pdf") -> Dict[str, Any]:
-        """Generate system-wide reports"""
+    def _create_excel_branch_report(self, branch: Branch, report_data: Dict[str, Any], 
+                                  insights: Dict[str, Any]) -> str:
+        """Create comprehensive Excel branch report with multiple sheets"""
         
-        if report_type == "all_branches_comparison":
-            return self._generate_branches_comparison_report(parameters, format)
-        elif report_type == "loan_portfolio_analysis":
-            return self._generate_portfolio_analysis_report(parameters, format)
-        elif report_type == "risk_assessment":
-            return self._generate_risk_assessment_report(parameters, format)
-        elif report_type == "profitability_analysis":
-            return self._generate_profitability_report(parameters, format)
-        else:
-            return {"error": "Unknown report type"}
-    
-    def _generate_branches_comparison_report(self, parameters: Dict[str, Any], 
-                                          format: str) -> Dict[str, Any]:
-        """Generate comparative analysis of all branches"""
-        db = SessionLocal()
-        try:
-            # Get all branches
-            branches = db.query(Branch).filter(Branch.is_active == True).all()
+        filename = f"branch_report_{branch.code}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        file_path = os.path.join(self.reports_dir, filename)
+        
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
             
-            comparison_data = []
+            # Summary Sheet
+            summary_data = {
+                "Metric": ["Total Customers", "Active Loans", "Completed Loans", "Arrears Loans", 
+                          "Total Disbursed", "Total Collected", "Collection Rate", "Outstanding Balance"],
+                "Value": [
+                    report_data["summary"]["total_customers"],
+                    report_data["summary"]["active_loans"],
+                    report_data["summary"]["completed_loans"],
+                    report_data["summary"]["arrears_loans"],
+                    f"KES {report_data['summary']['total_disbursed']:,.2f}",
+                    f"KES {report_data['summary']['total_collected']:,.2f}",
+                    f"{report_data['summary']['collection_rate']:.2f}%",
+                    f"KES {report_data['summary']['outstanding_balance']:,.2f}"
+                ]
+            }
             
-            for branch in branches:
-                # Get branch analytics
-                branch_analytics = analytics_engine.generate_comprehensive_analytics(
-                    branch_id=branch.id,
-                    user_role=UserRole.ADMIN
-                )
-                
-                if "error" not in branch_analytics:
-                    overview = branch_analytics["overview"]
-                    
-                    comparison_data.append({
-                        "branch_id": branch.id,
-                        "branch_name": branch.name,
-                        "branch_code": branch.code,
-                        "manager": f"{branch.manager.first_name} {branch.manager.last_name}" if branch.manager else "Not Assigned",
-                        "total_customers": overview["total_customers"],
-                        "active_loans": overview["active_loans"],
-                        "total_disbursed": overview["total_disbursed"],
-                        "total_collected": overview["total_collected"],
-                        "collection_rate": overview["collection_rate"],
-                        "par_ratio": overview["par_ratio"],
-                        "total_savings": overview["total_savings"],
-                        "gross_profit": overview.get("gross_profit", 0)
-                    })
+            summary_df = pd.DataFrame(summary_data)
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
             
-            # Create comparison analysis
-            if comparison_data:
-                # Rankings
-                best_collection = max(comparison_data, key=lambda x: x["collection_rate"])
-                best_growth = max(comparison_data, key=lambda x: x["total_disbursed"])
-                lowest_risk = min(comparison_data, key=lambda x: x["par_ratio"])
-                
-                analysis = {
-                    "branches_data": comparison_data,
-                    "rankings": {
-                        "best_collection_rate": {
-                            "branch": best_collection["branch_name"],
-                            "rate": best_collection["collection_rate"]
-                        },
-                        "highest_disbursement": {
-                            "branch": best_growth["branch_name"],
-                            "amount": best_growth["total_disbursed"]
-                        },
-                        "lowest_risk": {
-                            "branch": lowest_risk["branch_name"],
-                            "par_ratio": lowest_risk["par_ratio"]
-                        }
-                    },
-                    "system_totals": {
-                        "total_branches": len(comparison_data),
-                        "total_customers": sum(b["total_customers"] for b in comparison_data),
-                        "total_disbursed": sum(b["total_disbursed"] for b in comparison_data),
-                        "total_collected": sum(b["total_collected"] for b in comparison_data),
-                        "system_collection_rate": (sum(b["total_collected"] for b in comparison_data) / 
-                                                 sum(b["total_disbursed"] for b in comparison_data) * 100) if sum(b["total_disbursed"] for b in comparison_data) > 0 else 0
-                    }
-                }
-                
-                # Export to file
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"branches_comparison_{timestamp}.{format}"
-                file_path = os.path.join(self.reports_dir, filename)
-                
-                if format == "excel":
-                    # Export to Excel
-                    df = pd.DataFrame(comparison_data)
-                    df.to_excel(file_path, index=False)
-                elif format == "pdf":
-                    # Export to PDF (simplified)
-                    doc = SimpleDocTemplate(file_path, pagesize=A4)
-                    story = []
-                    story.append(Paragraph("Branches Comparison Report", getSampleStyleSheet()['Title']))
-                    # Add table with branch data
-                    # (Simplified implementation)
-                    doc.build(story)
-                
-                return {
-                    "success": True,
-                    "file_path": file_path,
-                    "analysis": analysis
-                }
-            else:
-                return {"error": "No branch data available"}
-                
-        except Exception as e:
-            return {"error": str(e)}
-        finally:
-            db.close()
+            # Loans Sheet
+            loans_data = []
+            for loan in report_data["loans"]:
+                loans_data.append({
+                    "Loan Number": loan.loan_number,
+                    "Borrower": f"{loan.borrower.first_name} {loan.borrower.last_name}",
+                    "Total Amount": float(loan.total_amount),
+                    "Amount Paid": float(loan.amount_paid),
+                    "Balance": float(loan.balance),
+                    "Status": loan.status.value,
+                    "Start Date": loan.start_date.isoformat(),
+                    "Due Date": loan.due_date.isoformat(),
+                    "Payment Progress": f"{(float(loan.amount_paid) / float(loan.total_amount) * 100):.1f}%"
+                })
+            
+            if loans_data:
+                loans_df = pd.DataFrame(loans_data)
+                loans_df.to_excel(writer, sheet_name='Loans', index=False)
+            
+            # Payments Sheet
+            payments_data = []
+            for payment in report_data["payments"]:
+                payments_data.append({
+                    "Payment Number": payment.payment_number,
+                    "Loan Number": payment.loan.loan_number,
+                    "Customer": f"{payment.payer.first_name} {payment.payer.last_name}",
+                    "Amount": float(payment.amount),
+                    "Method": payment.payment_method,
+                    "Date": payment.payment_date.isoformat(),
+                    "Status": payment.status.value
+                })
+            
+            if payments_data:
+                payments_df = pd.DataFrame(payments_data)
+                payments_df.to_excel(writer, sheet_name='Payments', index=False)
+            
+            # Insights Sheet
+            insights_data = {
+                "Category": ["Performance Rating"] + ["Strength"] * len(insights["key_strengths"]) + 
+                           ["Improvement Area"] * len(insights["areas_for_improvement"]) +
+                           ["Recommendation"] * len(insights["strategic_recommendations"]),
+                "Description": [insights["performance_rating"]] + insights["key_strengths"] + 
+                              insights["areas_for_improvement"] + insights["strategic_recommendations"]
+            }
+            
+            insights_df = pd.DataFrame(insights_data)
+            insights_df.to_excel(writer, sheet_name='AI Insights', index=False)
+        
+        return file_path
 
 
 # Initialize reporting engine

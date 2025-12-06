@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAnalytics } from '../services/api';
+import { analyticsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AnalyticsData {
@@ -20,8 +20,8 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await getAnalytics();
-        setAnalytics(response.data);
+        const response = await analyticsAPI.getAnalytics();
+        setAnalytics(response);
       } catch (err) {
         setError('Failed to load analytics data');
         console.error('Error fetching analytics:', err);

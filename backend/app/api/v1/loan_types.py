@@ -4,8 +4,7 @@ Loan Types API endpoints
 
 from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 from decimal import Decimal
 
 from app.database import get_db

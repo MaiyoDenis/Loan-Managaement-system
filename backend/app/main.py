@@ -13,7 +13,7 @@ import time
 
 from app.core.config import settings
 from app.database import engine
-from app.models import user, branch, loan  # Import to register models
+from app.models import branch, user, loan  # Import to register models
 from app.models.base import Base
 from app.api.v1 import auth, users, branches, admin
 
@@ -37,7 +37,7 @@ app = FastAPI(
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origins=[str(origin).rstrip('/') for origin in settings.BACKEND_CORS_ORIGINS],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -120,11 +120,11 @@ app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["a
 async def startup_event():
     """Application startup tasks"""
     logger.info("🚀 Kim Loans Management System starting up...")
-    
+
     # Create default admin user if not exists
     from app.utils.init_db import create_default_admin
-    await create_default_admin()
-    
+    create_default_admin()
+
     logger.info("✅ System ready!")
 
 

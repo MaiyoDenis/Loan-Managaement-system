@@ -1,0 +1,7 @@
+# Include all from requirements.txt plus:
+jupyter==1.0.0               # For data analysis
+notebook==7.0.6              # Jupyter notebooks
+ipython==8.17.2              # Enhanced Python shell
+pre-commit==3.6.0            # Git hooks
+bandit==1.7.5                # Security linting
+safety==2.3.5                # Security vulnerability checker

@@ -140,9 +140,9 @@ def get_loan_products(
 async def create_loan_product(
     name: str,
     category_id: int,
+    description: Optional[str] = None,
     buying_price: Decimal,
     selling_price: Decimal,
-    description: Optional[str] = None,
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("loans:products_manage"))
