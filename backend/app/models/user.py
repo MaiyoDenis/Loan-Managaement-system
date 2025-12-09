@@ -7,9 +7,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models.base import BaseModel
-from app.core.permissions import UserRole
-
-
 class User(BaseModel):
     """User model for all system users"""
     __tablename__ = "users"
@@ -26,7 +23,7 @@ class User(BaseModel):
     national_id = Column(String(20), unique=True, nullable=True)
     
     # System Information
-    role = Column(Enum(UserRole), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)
     unique_account_number = Column(String(20), unique=True, nullable=True, index=True)
     
@@ -37,6 +34,7 @@ class User(BaseModel):
     must_change_password = Column(Boolean, default=True)
     
     # Relationships
+    role_obj = relationship("Role", back_populates="users")
     branch = relationship("Branch", back_populates="users", foreign_keys=[branch_id])
     managed_branch = relationship("Branch", back_populates="manager", foreign_keys="Branch.manager_id")
     procurement_branch = relationship("Branch", back_populates="procurement_officer", foreign_keys="Branch.procurement_officer_id")
@@ -53,9 +51,6 @@ class User(BaseModel):
     loan_applications = relationship("LoanApplication", back_populates="applicant", foreign_keys="LoanApplication.applicant_id")
     loans = relationship("Loan", back_populates="borrower")
     
-    # Permission relationships
-    user_permissions = relationship("UserPermission", back_populates="user", foreign_keys="UserPermission.user_id")
-    
     # Activity tracking
     activity_logs = relationship("ActivityLog", back_populates="user")
     user_sessions = relationship("UserSession", back_populates="user")
@@ -65,24 +60,7 @@ class User(BaseModel):
     received_notifications = relationship("Notification", foreign_keys="Notification.recipient_id", back_populates="recipient")
     
     def __repr__(self):
-        return f"<User(username='{self.username}', role='{self.role}')>"
-
-
-class UserPermission(BaseModel):
-    """User-specific permissions (granular control)"""
-    __tablename__ = "user_permissions"
-    
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    permission_name = Column(String(100), nullable=False)
-    granted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    granted_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship("User", back_populates="user_permissions", foreign_keys=[user_id])
-    granter = relationship("User", foreign_keys=[granted_by])
-    
-    def __repr__(self):
-        return f"<UserPermission(user_id={self.user_id}, permission='{self.permission_name}')>"
+        return f"<User(username='{self.username}')>"
 
 
 class UserSession(BaseModel):
