@@ -45,3 +45,11 @@ class UserResponse(UserBase):
 
     class Config:
         orm_mode = True
+
+class CustomerCreate(BaseModel):
+    """Customer creation by loan officer"""
+    phone_number: str = Field(..., pattern=r'^\+?[1-9]\d{1,14}$')
+    first_name: str = Field(..., min_length=2, max_length=50)
+    last_name: str = Field(..., min_length=2, max_length=50)
+    national_id: Optional[str] = Field(None, max_length=20)
+    group_id: int

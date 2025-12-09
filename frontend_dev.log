@@ -3,7 +3,207 @@
 > vite
 
 
-  VITE v7.2.4  ready in 247 ms
+  VITE v7.2.4  ready in 949 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
+12:39:15 PM [vite] (client) Pre-transform error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupsPage.tsx:18:26
+  18 |  } from "@mui/material";
+  19 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  20 |  import { getGroups } from "../../services/groupService";
+     |                             ^
+  21 |  import { GroupResponse } from "../../schemas/group";
+  22 |  import { motion } from "framer-motion";
+12:39:15 PM [vite] (client) Pre-transform error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupDetailsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupDetailsPage.tsx:19:25
+  19 |  } from "@mui/material";
+  20 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  21 |  import { getGroup } from "../../services/groupService";
+     |                            ^
+  22 |  import { getGroupMembers, createCustomer } from "../../services/userService";
+  23 |  import { GroupResponse } from "../../schemas/group";
+12:39:16 PM [vite] (client) Pre-transform error: Failed to resolve import "../../schemas/user" from "src/pages/groups/CustomerForm.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/CustomerForm.tsx:10:31
+  10 |    TextField
+  11 |  } from "@mui/material";
+  12 |  import { CustomerCreate } from "../../schemas/user";
+     |                                  ^
+  13 |  import { motion } from "framer-motion";
+  14 |  const CustomerForm = ({ open, onClose, onSubmit, groupId }) => {
+12:39:16 PM [vite] (client) Pre-transform error: Failed to resolve import "../schemas/user" from "src/services/userService.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/services/userService.ts:2:45
+  1  |  import axios from "axios";
+  2  |  import { UserResponse, CustomerCreate } from "../schemas/user";
+     |                                                ^
+  3  |  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+  4  |  const userApi = axios.create({
+12:39:16 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupsPage.tsx:18:26
+  18 |  } from "@mui/material";
+  19 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  20 |  import { getGroups } from "../../services/groupService";
+     |                             ^
+  21 |  import { GroupResponse } from "../../schemas/group";
+  22 |  import { motion } from "framer-motion";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:39:16 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupDetailsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupDetailsPage.tsx:19:25
+  19 |  } from "@mui/material";
+  20 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  21 |  import { getGroup } from "../../services/groupService";
+     |                            ^
+  22 |  import { getGroupMembers, createCustomer } from "../../services/userService";
+  23 |  import { GroupResponse } from "../../schemas/group";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:39:16 PM [vite] (client) Pre-transform error: Failed to resolve import "../schemas/user" from "src/services/userService.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/services/userService.ts:2:45
+  1  |  import axios from "axios";
+  2  |  import { UserResponse, CustomerCreate } from "../schemas/user";
+     |                                                ^
+  3  |  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+  4  |  const userApi = axios.create({
+12:39:16 PM [vite] (client) Pre-transform error: Failed to resolve import "../../schemas/user" from "src/pages/groups/CustomerForm.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/CustomerForm.tsx:10:31
+  10 |    TextField
+  11 |  } from "@mui/material";
+  12 |  import { CustomerCreate } from "../../schemas/user";
+     |                                  ^
+  13 |  import { motion } from "framer-motion";
+  14 |  const CustomerForm = ({ open, onClose, onSubmit, groupId }) => {
+12:40:49 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupsPage.tsx:18:26
+  18 |  } from "@mui/material";
+  19 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  20 |  import { getGroups } from "../../services/groupService";
+     |                             ^
+  21 |  import { GroupResponse } from "../../schemas/group";
+  22 |  import { motion } from "framer-motion";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:40:49 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupDetailsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupDetailsPage.tsx:19:25
+  19 |  } from "@mui/material";
+  20 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  21 |  import { getGroup } from "../../services/groupService";
+     |                            ^
+  22 |  import { getGroupMembers, createCustomer } from "../../services/userService";
+  23 |  import { GroupResponse } from "../../schemas/group";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:40:49 PM [vite] (client) Pre-transform error: Failed to resolve import "../../schemas/user" from "src/pages/groups/CustomerForm.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/CustomerForm.tsx:10:31
+  10 |    TextField
+  11 |  } from "@mui/material";
+  12 |  import { CustomerCreate } from "../../schemas/user";
+     |                                  ^
+  13 |  import { motion } from "framer-motion";
+  14 |  const CustomerForm = ({ open, onClose, onSubmit, groupId }) => {
+12:40:49 PM [vite] (client) Pre-transform error: Failed to resolve import "../schemas/user" from "src/services/userService.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/services/userService.ts:2:45
+  1  |  import axios from "axios";
+  2  |  import { UserResponse, CustomerCreate } from "../schemas/user";
+     |                                                ^
+  3  |  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+  4  |  const userApi = axios.create({
+12:42:46 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupsPage.tsx:18:26
+  18 |  } from "@mui/material";
+  19 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  20 |  import { getGroups } from "../../services/groupService";
+     |                             ^
+  21 |  import { GroupResponse } from "../../schemas/group";
+  22 |  import { motion } from "framer-motion";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:42:46 PM [vite] Internal server error: Failed to resolve import "../../services/groupService" from "src/pages/groups/GroupDetailsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/GroupDetailsPage.tsx:19:25
+  19 |  } from "@mui/material";
+  20 |  import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+  21 |  import { getGroup } from "../../services/groupService";
+     |                            ^
+  22 |  import { getGroupMembers, createCustomer } from "../../services/userService";
+  23 |  import { GroupResponse } from "../../schemas/group";
+      at TransformPluginContext._formatLog (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29647:43)
+      at TransformPluginContext.error (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29644:14)
+      at normalizeUrl (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27767:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27825:32
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:27793:4)
+      at async EnvironmentPluginContainer.transform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:29445:14)
+      at async loadAndTransform (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:23316:26)
+      at async viteTransformMiddleware (file:///app/frontend/node_modules/vite/dist/node/chunks/config.js:25188:20)
+12:42:46 PM [vite] (client) Pre-transform error: Failed to resolve import "../schemas/user" from "src/services/userService.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/services/userService.ts:2:45
+  1  |  import axios from "axios";
+  2  |  import { UserResponse, CustomerCreate } from "../schemas/user";
+     |                                                ^
+  3  |  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+  4  |  const userApi = axios.create({
+12:42:46 PM [vite] (client) Pre-transform error: Failed to resolve import "../../schemas/user" from "src/pages/groups/CustomerForm.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /app/frontend/src/pages/groups/CustomerForm.tsx:10:31
+  10 |    TextField
+  11 |  } from "@mui/material";
+  12 |  import { CustomerCreate } from "../../schemas/user";
+     |                                  ^
+  13 |  import { motion } from "framer-motion";
+  14 |  const CustomerForm = ({ open, onClose, onSubmit, groupId }) => {

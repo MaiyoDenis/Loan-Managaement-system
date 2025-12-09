@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Button,
+  Container,
   Typography,
   Table,
   TableBody,
@@ -9,152 +11,96 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
-  Chip,
-  TextField,
-  InputAdornment,
+  IconButton,
+  CircularProgress,
 } from '@mui/material';
-import { Search, Add, Group } from '@mui/icons-material';
-
-interface Group {
-  id: number;
-  name: string;
-  loan_officer: string;
-  branch: string;
-  meeting_day: string;
-  meeting_time: string;
-  total_members: number;
-  is_active: boolean;
-}
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { getGroups } from '../../services/groupService';
+import { GroupResponse } from '../../schemas/group';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const GroupsPage: React.FC = () => {
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [groups, setGroups] = useState<GroupResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchGroups();
-  }, [searchTerm]);
+  }, []);
 
   const fetchGroups = async () => {
-    try {
-      // TODO: Implement API call to fetch groups
-      // For now, using mock data
-      setGroups([
-        {
-          id: 1,
-          name: 'Hope Group',
-          loan_officer: 'John Doe',
-          branch: 'Main Branch',
-          meeting_day: 'Monday',
-          meeting_time: '2:00 PM',
-          total_members: 15,
-          is_active: true,
-        },
-        {
-          id: 2,
-          name: 'Unity Group',
-          loan_officer: 'Jane Smith',
-          branch: 'Westlands Branch',
-          meeting_day: 'Wednesday',
-          meeting_time: '4:00 PM',
-          total_members: 12,
-          is_active: true,
-        },
-      ]);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const groups = await getGroups();
+    setGroups(groups);
+    setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography>Loading groups...</Typography>
-      </Box>
-    );
-  }
+  const handleViewGroup = (groupId: number) => {
+    navigate(`/groups/${groupId}`);
+  };
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Groups Management
-        </Typography>
-        <Button variant="contained" startIcon={<Add />}>
-          Add Group
-        </Button>
-      </Box>
-
-      <Box mb={3}>
-        <TextField
-          placeholder="Search groups..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Group Name</TableCell>
-              <TableCell>Loan Officer</TableCell>
-              <TableCell>Branch</TableCell>
-              <TableCell>Meeting Schedule</TableCell>
-              <TableCell>Members</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {groups.map((group) => (
-              <TableRow key={group.id}>
-                <TableCell>
-                  <Box display="flex" alignItems="center">
-                    <Group sx={{ mr: 1, color: 'primary.main' }} />
-                    {group.name}
-                  </Box>
-                </TableCell>
-                <TableCell>{group.loan_officer}</TableCell>
-                <TableCell>{group.branch}</TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2">{group.meeting_day}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {group.meeting_time}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>{group.total_members}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={group.is_active ? 'Active' : 'Inactive'}
-                    color={group.is_active ? 'success' : 'error'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button size="small" variant="outlined">
-                    Edit
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+      <Container maxWidth="lg">
+        <Box sx={{ my: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Group Management
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => console.log('Create new group')}
+            >
+              New Group
+            </Button>
+          </Box>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Branch ID</TableCell>
+                    <TableCell>Loan Officer ID</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {groups.map((group) => (
+                    <TableRow
+                      key={group.id}
+                      hover
+                      onClick={() => handleViewGroup(group.id)}
+                      style={{ cursor: 'pointer' }}
+                      component={motion.tr}
+                      whileHover={{ scale: 1.02 }}
+                    >
+                      <TableCell>{group.name}</TableCell>
+                      <TableCell>{group.branch_id}</TableCell>
+                      <TableCell>{group.loan_officer_id}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={(e) => { e.stopPropagation(); console.log(`Edit group ${group.id}`)}}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={(e) => { e.stopPropagation(); console.log(`Delete group ${group.id}`)}}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Box>
+      </Container>
+    </motion.div>
   );
 };
 
