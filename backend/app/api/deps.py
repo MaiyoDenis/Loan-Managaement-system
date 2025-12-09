@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.core.security import verify_token
-from app.core.permissions import UserRole, get_role_permissions, has_permission
-from app.models.user import User, UserPermission
+from app.models.user import User
+from app.models.role import Role, Permission, RolePermission
 from app.schemas.auth import TokenData
 
 # Security scheme
@@ -70,18 +70,14 @@ def get_current_user_permissions(
     db: Session = Depends(get_db)
 ) -> Set[str]:
     """Get current user's permissions"""
-    # Start with role-based permissions
-    role_permissions = get_role_permissions(current_user.role)
     
-    # Add user-specific permissions
-    user_permissions = db.query(UserPermission).filter(
-        UserPermission.user_id == current_user.id,
-        UserPermission.is_active == True
-    ).all()
+    role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if not role:
+        return set()
+
+    permissions = db.query(Permission.name).join(RolePermission).filter(RolePermission.role_id == role.id).all()
     
-    specific_permissions = {perm.permission_name for perm in user_permissions}
-    
-    return role_permissions.union(specific_permissions)
+    return {p[0] for p in permissions}
 
 
 def require_permission(required_permission: str):
@@ -90,7 +86,7 @@ def require_permission(required_permission: str):
         current_user: User = Depends(get_current_active_user),
         user_permissions: Set[str] = Depends(get_current_user_permissions)
     ) -> User:
-        if not has_permission(user_permissions, required_permission):
+        if required_permission not in user_permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Insufficient permissions. Required: {required_permission}"
@@ -100,15 +96,17 @@ def require_permission(required_permission: str):
     return permission_checker
 
 
-def require_role(required_role: UserRole):
+def require_role(required_role: str):
     """Dependency factory for role-based access control"""
     def role_checker(
-        current_user: User = Depends(get_current_active_user)
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db)
     ) -> User:
-        if current_user.role != required_role:
+        role = db.query(Role).filter(Role.id == current_user.role_id).first()
+        if not role or role.name.lower() != required_role.lower():
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required role: {required_role.value}"
+                detail=f"Access denied. Required role: {required_role}"
             )
         return current_user
     
@@ -117,16 +115,20 @@ def require_role(required_role: UserRole):
 
 def require_admin():
     """Require admin role"""
-    return require_role(UserRole.ADMIN)
+    return require_role("admin")
 
 
 def require_branch_manager():
     """Require branch manager role or admin"""
-    def checker(current_user: User = Depends(get_current_active_user)) -> User:
-        if current_user.role not in [UserRole.ADMIN, UserRole.BRANCH_MANAGER]:
+    def checker(
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db)
+    ) -> User:
+        role = db.query(Role).filter(Role.id == current_user.role_id).first()
+        if not role or role.name.lower() not in ["admin", "branch_manager"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied. Branch manager role required"
+                detail="Access denied. Branch manager or admin role required"
             )
         return current_user
     
@@ -134,12 +136,14 @@ def require_branch_manager():
 
 
 def get_branch_users_only(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Dependency to ensure user can only access their branch data"""
     def branch_filter(resource_branch_id: Optional[int] = None):
+        role = db.query(Role).filter(Role.id == current_user.role_id).first()
         # Admin can access all branches
-        if current_user.role == UserRole.ADMIN:
+        if role and role.name.lower() == "admin":
             return True
         
         # Other roles can only access their own branch
@@ -159,10 +163,12 @@ def get_branch_users_only(
 
 def validate_branch_access(
     branch_id: int,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> bool:
     """Validate user has access to specified branch"""
-    if current_user.role == UserRole.ADMIN:
+    role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if role and role.name.lower() == "admin":
         return True
     
     if current_user.branch_id != branch_id:
@@ -179,10 +185,11 @@ def get_loan_officer_groups_only(
     db: Session = Depends(get_db)
 ):
     """Ensure loan officer can only access their own groups"""
-    if current_user.role == UserRole.ADMIN:
+    role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if role and role.name.lower() == "admin":
         return None  # Admin can access all
     
-    if current_user.role != UserRole.LOAN_OFFICER:
+    if not role or role.name.lower() != "loan_officer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only loan officers can access group data"

@@ -159,3 +159,4 @@ alembic/versions/*.py
 # Temporary files
 *.tmp
 *.bak
+myenv/
