@@ -15,7 +15,7 @@ from app.core.config import settings
 from app.database import engine
 from app.models import branch, user, loan  # Import to register models
 from app.models.base import Base
-from app.api.v1 import auth, users, branches, admin
+from app.api.v1 import auth, users, branches, admin, groups
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -112,6 +112,7 @@ async def root():
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["authentication"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 app.include_router(branches.router, prefix=f"{settings.API_V1_STR}/branches", tags=["branches"])
+app.include_router(groups.router, prefix=f"{settings.API_V1_STR}/groups", tags=["groups"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 
 
