@@ -39,7 +39,7 @@ def create_default_admin():
             first_name="System",
             last_name="Administrator",
             phone_number="+254700000000",  # Default phone number
-            password_hash=get_password_hash(settings.DEFAULT_ADMIN_PASSWORD),
+            password_hash=get_password_hash("admin123"),
             role_id=admin_role.id,
             is_active=True,
             must_change_password=False
@@ -52,7 +52,7 @@ def create_default_admin():
         print("✅ Default admin user created successfully")
         print(f"   Username: admin")
         print(f"   Email: {settings.DEFAULT_ADMIN_EMAIL}")
-        print(f"   Password: {settings.DEFAULT_ADMIN_PASSWORD}")
+        print(f"   Password: admin123")
 
     except Exception as e:
         print(f"❌ Error creating default admin user: {e}")
