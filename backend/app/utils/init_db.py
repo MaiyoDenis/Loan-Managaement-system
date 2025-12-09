@@ -5,8 +5,8 @@ Database initialization utilities
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.user import User
+from app.models.role import Role
 from app.core.security import get_password_hash
-from app.core.permissions import UserRole
 from app.core.config import settings
 
 
@@ -17,6 +17,14 @@ def create_default_admin():
     db: Session = SessionLocal()
 
     try:
+        # Check if admin role already exists
+        admin_role = db.query(Role).filter(Role.name == "admin").first()
+        if not admin_role:
+            admin_role = Role(name="admin", description="Administrator")
+            db.add(admin_role)
+            db.commit()
+            db.refresh(admin_role)
+
         # Check if admin user already exists
         admin_user = db.query(User).filter(User.username == "admin").first()
 
@@ -32,7 +40,7 @@ def create_default_admin():
             last_name="Administrator",
             phone_number="+254700000000",  # Default phone number
             password_hash=get_password_hash(settings.DEFAULT_ADMIN_PASSWORD),
-            role=UserRole.ADMIN,
+            role_id=admin_role.id,
             is_active=True,
             must_change_password=False
         )
@@ -58,7 +66,7 @@ def init_database():
     Initialize database with default data
     """
     from app.database import engine
-    from app.models import user, branch, loan  # Import to register models
+    from app.models import *  # Import to register models
     from app.models.base import Base
 
     # Create all tables
@@ -69,5 +77,4 @@ def init_database():
 if __name__ == "__main__":
     # Run database initialization
     init_database()
-    import asyncio
-    asyncio.run(create_default_admin())
+    create_default_admin()

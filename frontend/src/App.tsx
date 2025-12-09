@@ -18,6 +18,7 @@ import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/users/UsersPage';
 import BranchesPage from './pages/branches/BranchesPage';
 import GroupsPage from './pages/groups/GroupsPage';
+import GroupDetailsPage from './pages/groups/GroupDetailsPage';
 
 // Theme configuration
 const theme = createTheme({
@@ -81,6 +82,7 @@ function App() {
                             <Route path="/users" element={<UsersPage />} />
                             <Route path="/branches" element={<BranchesPage />} />
                             <Route path="/groups" element={<GroupsPage />} />
+                            <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
                             {/* Add more routes as needed */}
                           </Routes>
                         </Layout>

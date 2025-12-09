@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 backend/.env
 backend/loan_management.db
+loan_management.db
+frontend_dev.log
+myenv/

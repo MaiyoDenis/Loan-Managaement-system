@@ -103,7 +103,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-myenv/
 .env.local
 .env.production
 .env.staging
@@ -159,3 +158,4 @@ alembic/versions/*.py
 # Temporary files
 *.tmp
 *.bak
+myenv/
