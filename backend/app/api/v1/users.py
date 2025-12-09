@@ -139,7 +139,7 @@ def create_customer(
         member_id=user.id,
     )
     db.add_all([savings_account, drawdown_account, group_membership])
-
+    
     db.commit()
     db.refresh(user)
     return user
