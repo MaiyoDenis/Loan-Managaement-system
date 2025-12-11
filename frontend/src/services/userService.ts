@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { UserResponse, CustomerCreate } from '../schemas/user';
+import type { UserResponse, CustomerCreate } from '../schemas/user';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 

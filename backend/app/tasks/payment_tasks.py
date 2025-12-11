@@ -2,6 +2,7 @@
 Background tasks for payment processing using Celery
 """
 
+import asyncio
 from celery import Celery
 from sqlalchemy.orm import Session
 from decimal import Decimal
@@ -156,14 +157,14 @@ def process_mpesa_payment(db: Session, mpesa_transaction_id: int) -> dict:
                 # Handle registration fee payment
                 if not savings_account.registration_fee_paid and savings_account.balance >= 0:
                     savings_account.registration_fee_paid = True
-                    
+
                     # Send registration complete SMS
                     welcome_message = SMSTemplates.registration_complete(
                         customer.first_name,
                         customer.unique_account_number,
                         savings_account.loan_limit
                     )
-                    await sms_service.send_sms(customer.phone_number, welcome_message)
+                    asyncio.run(sms_service.send_sms(customer.phone_number, welcome_message))
                 
                 # Create transaction record
                 transaction = Transaction(
@@ -200,19 +201,19 @@ def process_mpesa_payment(db: Session, mpesa_transaction_id: int) -> dict:
         else:
             confirmation_message = f"Dear {customer.first_name}, KES {mpesa_tx.amount} received and added to your savings account. Thank you!"
         
-        await sms_service.send_sms(customer.phone_number, confirmation_message)
+        asyncio.run(sms_service.send_sms(customer.phone_number, confirmation_message))
         
         # Send notification to loan officer
         if customer.group_memberships:
             group = customer.group_memberships[0].group
             loan_officer = group.loan_officer
-            
-            await notification_service.send_notification(
+
+            asyncio.run(notification_service.send_notification(
                 recipient_id=loan_officer.id,
                 title="Payment Received",
                 message=f"{customer.first_name} {customer.last_name} paid KES {mpesa_tx.amount}",
                 notification_type="payment"
-            )
+            ))
         
         return {
             "success": True,

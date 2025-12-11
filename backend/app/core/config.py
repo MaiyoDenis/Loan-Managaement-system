@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         raise ValueError(v)
     
     # Database Configuration
-    DATABASE_URL: str = "sqlite:///./loan_management.db"
+    DATABASE_URL: str = "sqlite:///./dev_loan_management.db"
     
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379"

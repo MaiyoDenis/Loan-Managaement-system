@@ -1,11 +1,17 @@
 import axios from 'axios';
-import type { AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// Validate required environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+if (!API_BASE_URL) {
+  console.warn('VITE_API_URL is not set, using default: http://localhost:8000/api/v1');
+}
+
+const baseURL = API_BASE_URL || 'http://localhost:8000/api/v1';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -43,7 +49,7 @@ api.interceptors.response.use(
           // Retry original request
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return api.request(error.config);
-        } catch (refreshError) {
+        } catch {
           // Refresh failed, redirect to login
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
@@ -225,6 +231,39 @@ export const loanApplicationsAPI = {
 export const analyticsAPI = {
   getAnalytics: (params?: any) =>
     api.get('/analytics/dashboard', { params }).then(res => res.data),
+};
+
+// Payments API
+export const paymentsAPI = {
+  getPayments: (params?: any) =>
+    api.get('/payments', { params }).then(res => res.data),
+
+  getPendingPayments: () =>
+    api.get('/payments/pending').then(res => res.data),
+
+  getPaymentStats: (params?: any) =>
+    api.get('/payments/stats', { params }).then(res => res.data),
+
+  getMpesaTransactions: () =>
+    api.get('/payments/mpesa-transactions').then(res => res.data),
+
+  createManualPayment: (paymentData: any) =>
+    api.post('/payments/manual', paymentData).then(res => res.data),
+
+  confirmPayment: (paymentId: number) =>
+    api.put(`/payments/${paymentId}/confirm`).then(res => res.data),
+};
+
+// M-Pesa API
+export const mpesaAPI = {
+  initiatePayment: (paymentData: any) =>
+    api.post('/mpesa/initiate', paymentData).then(res => res.data),
+
+  checkPaymentStatus: (transactionId: string) =>
+    api.get(`/mpesa/status/${transactionId}`).then(res => res.data),
+
+  getTransactionHistory: (params?: any) =>
+    api.get('/mpesa/transactions', { params }).then(res => res.data),
 };
 
 export default api;

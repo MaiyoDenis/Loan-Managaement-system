@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Group, User
+from app.models.branch import Group
+from app.models.user import User
 from app.schemas.group import GroupCreate, GroupUpdate, GroupResponse
 from app.api.deps import get_current_active_user, require_permission
 
@@ -110,7 +111,7 @@ def delete_group(
     group_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("group_delete"))
-) -> Any:
+) -> None:
     """
     Delete group
     """

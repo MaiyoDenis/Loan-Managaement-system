@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box } from '@mui/material';
 import Sidebar from './Layout/Sidebar';
 
 interface LayoutProps {
@@ -7,14 +8,32 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-gray-100">
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.100' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+      <Box 
+        sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden',
+          width: { xs: '100%', md: 'calc(100% - 280px)' },
+        }}
+      >
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            bgcolor: 'grey.100',
+            p: { xs: 2, sm: 3 },
+            pt: { xs: 8, md: 3 }, // Extra padding top on mobile for menu button
+          }}
+        >
           {children}
-        </main>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

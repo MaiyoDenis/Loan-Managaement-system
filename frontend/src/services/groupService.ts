@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GroupResponse } from '../schemas/group';
+import type { GroupResponse } from '../schemas/group';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 

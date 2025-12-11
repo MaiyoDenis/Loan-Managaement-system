@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Button,
@@ -16,25 +16,18 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { getGroups } from '../../services/groupService';
-import { GroupResponse } from '../../schemas/group';
+import type { GroupResponse } from '../../schemas/group';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
 const GroupsPage: React.FC = () => {
-  const [groups, setGroups] = useState<GroupResponse[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
-    setLoading(true);
-    const groups = await getGroups();
-    setGroups(groups);
-    setLoading(false);
-  };
+  const { data: groups = [], isLoading } = useQuery<GroupResponse[]>({
+    queryKey: ['groups'],
+    queryFn: getGroups,
+    retry: 1,
+  });
 
   const handleViewGroup = (groupId: number) => {
     navigate(`/groups/${groupId}`);
@@ -51,12 +44,14 @@ const GroupsPage: React.FC = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => console.log('Create new group')}
+              onClick={() => {
+                // TODO: Implement create group dialog
+              }}
             >
               New Group
             </Button>
           </Box>
-          {loading ? (
+          {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
               <CircularProgress />
             </Box>
@@ -85,10 +80,22 @@ const GroupsPage: React.FC = () => {
                       <TableCell>{group.branch_id}</TableCell>
                       <TableCell>{group.loan_officer_id}</TableCell>
                       <TableCell>
-                        <IconButton onClick={(e) => { e.stopPropagation(); console.log(`Edit group ${group.id}`)}}>
+                        <IconButton 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            // TODO: Implement edit group
+                          }}
+                          aria-label={`Edit ${group.name}`}
+                        >
                           <EditIcon />
                         </IconButton>
-                        <IconButton onClick={(e) => { e.stopPropagation(); console.log(`Delete group ${group.id}`)}}>
+                        <IconButton 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            // TODO: Implement delete group
+                          }}
+                          aria-label={`Delete ${group.name}`}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>

@@ -19,7 +19,7 @@ class PermissionResponse(PermissionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RoleBase(BaseModel):
@@ -35,7 +35,7 @@ class RoleResponse(RoleBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RolePermissionRequest(BaseModel):

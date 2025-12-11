@@ -3,17 +3,20 @@ Advanced Dashboard Analytics API - The Analytics Command Center
 This API provides all the data for beautiful dashboards with AI insights
 """
 
+import os
 from typing import List, Any, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract, and_, or_
 from datetime import datetime, date, timedelta
 from decimal import Decimal
+import numpy as np
+import pandas as pd
 
 from app.database import get_db
 from app.models.loan import (
     Loan, Payment, SavingsAccount, DrawdownAccount, 
-    BranchInventory, Arrear, LoanProduct
+    BranchInventory, Arrear, LoanProduct, LoanApplication
 )
 from app.models.user import User
 from app.models.branch import Branch, Group, GroupMembership

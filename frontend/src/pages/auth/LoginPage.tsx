@@ -18,8 +18,23 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate('/dashboard');
-    } catch (err) {
+      // Determine redirect target based on role
+      const stored = localStorage.getItem('user');
+      const user = stored ? JSON.parse(stored) : null;
+      const role = user?.role?.toLowerCase?.();
+
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'loan_officer') {
+        navigate('/officer');
+      } else if (role === 'branch_manager') {
+        navigate('/manager');
+      } else if (role === 'procurement_officer') {
+        navigate('/procurement');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch {
       setError('Invalid credentials');
     } finally {
       setLoading(false);

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   CardMedia,
@@ -20,20 +19,18 @@ import {
   Select,
   IconButton,
   Alert,
-  Fab,
   Badge
 } from '@mui/material';
+
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   PhotoCamera,
-  AttachMoney,
   Category,
   Inventory
 } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { loanProductsAPI, productCategoriesAPI } from '../../services/api';
@@ -78,61 +75,55 @@ const LoanProductsPage: React.FC = () => {
   });
 
   // API Queries
-  const { data: products = [], isLoading: productsLoading } = useQuery(
-    ['loan-products', selectedCategory],
-    () => loanProductsAPI.getProducts({ 
+  const { data: products = [] } = useQuery({
+    queryKey: ['loan-products', selectedCategory],
+    queryFn: () => loanProductsAPI.getProducts({
       category_id: selectedCategory !== 'all' ? parseInt(selectedCategory) : undefined,
-      branch_id: user?.branch_id 
+      branch_id: user?.branch_id
     }),
-    { refetchInterval: 30000 }
-  );
+    refetchInterval: 30000
+  });
 
-  const { data: categories = [] } = useQuery(
-    'product-categories',
-    () => productCategoriesAPI.getCategories()
-  );
+  const { data: categories = [] } = useQuery({
+    queryKey: ['product-categories'],
+    queryFn: () => productCategoriesAPI.getCategories()
+  });
 
   // Mutations
-  const createProductMutation = useMutation(
-    (data: FormData) => loanProductsAPI.createProduct(data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('loan-products');
-        toast.success('Product created successfully!');
-        handleCloseDialog();
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to create product');
-      }
+  const createProductMutation = useMutation({
+    mutationFn: (data: FormData) => loanProductsAPI.createProduct(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-products'] });
+      toast.success('Product created successfully!');
+      handleCloseDialog();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create product');
     }
-  );
+  });
 
-  const updateProductMutation = useMutation(
-    ({ id, data }: { id: number; data: any }) => loanProductsAPI.updateProduct(id, data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('loan-products');
-        toast.success('Product updated successfully!');
-        handleCloseDialog();
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to update product');
-      }
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData }) => loanProductsAPI.updateProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-products'] });
+      toast.success('Product updated successfully!');
+      handleCloseDialog();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update product');
     }
-  );
+  });
 
-  const deleteProductMutation = useMutation(
-    (id: number) => loanProductsAPI.deleteProduct(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('loan-products');
-        toast.success('Product deleted successfully!');
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to delete product');
-      }
+  const deleteProductMutation = useMutation({
+    mutationFn: (id: number) => loanProductsAPI.deleteProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-products'] });
+      toast.success('Product deleted successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete product');
     }
-  );
+  });
 
   // Event handlers
   const handleOpenDialog = (product?: LoanProduct) => {
@@ -255,9 +246,9 @@ const LoanProductsPage: React.FC = () => {
       </Box>
 
       {/* Products Grid */}
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
         {products.map((product: LoanProduct) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+          <Box sx={{ flex: '1 1 300px', maxWidth: '300px' }} key={product.id}>
             <Card 
               sx={{ 
                 height: '100%', 
@@ -360,9 +351,9 @@ const LoanProductsPage: React.FC = () => {
                 </CardActions>
               )}
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       {/* Add/Edit Product Dialog */}
       <Dialog 
@@ -409,34 +400,30 @@ const LoanProductsPage: React.FC = () => {
               rows={3}
             />
             
-            <Grid container spacing={2}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
               {user?.role === 'admin' && (
-                <Grid item xs={6}>
-                  <TextField
-                    label="Buying Price (Secret)"
-                    type="number"
-                    value={formData.buying_price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, buying_price: e.target.value }))}
-                    fullWidth
-                    required
-                    InputProps={{ startAdornment: '$' }}
-                    helperText="Only visible to admin"
-                  />
-                </Grid>
-              )}
-              
-              <Grid item xs={user?.role === 'admin' ? 6 : 12}>
                 <TextField
-                  label="Selling Price"
+                  label="Buying Price (Secret)"
                   type="number"
-                  value={formData.selling_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, selling_price: e.target.value }))}
+                  value={formData.buying_price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, buying_price: e.target.value }))}
                   fullWidth
                   required
                   InputProps={{ startAdornment: '$' }}
+                  helperText="Only visible to admin"
                 />
-              </Grid>
-            </Grid>
+              )}
+
+              <TextField
+                label="Selling Price"
+                type="number"
+                value={formData.selling_price}
+                onChange={(e) => setFormData(prev => ({ ...prev, selling_price: e.target.value }))}
+                fullWidth
+                required
+                InputProps={{ startAdornment: '$' }}
+              />
+            </Box>
             
             {/* Image Upload */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -481,10 +468,10 @@ const LoanProductsPage: React.FC = () => {
         
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={createProductMutation.isLoading || updateProductMutation.isLoading}
+            disabled={createProductMutation.isPending || updateProductMutation.isPending}
           >
             {editingProduct ? 'Update' : 'Create'} Product
           </Button>

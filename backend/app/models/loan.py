@@ -2,7 +2,7 @@
 Loan and financial-related models
 """
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DECIMAL, Boolean, Date, Enum, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DECIMAL, Boolean, Date, DateTime, Enum, JSON
 from sqlalchemy.orm import relationship, foreign
 from decimal import Decimal
 from enum import Enum as PyEnum
@@ -480,3 +480,71 @@ class Notification(BaseModel):
     
     def __repr__(self):
         return f"<Notification(type='{self.notification_type}', target='{self.target_type}')>"
+
+
+class MpesaTransaction(BaseModel):
+    """M-Pesa transaction records (C2B and STK push)"""
+    __tablename__ = "mpesa_transactions"
+
+    # STK push identifiers
+    checkout_request_id = Column(String(64), nullable=True)
+    merchant_request_id = Column(String(64), nullable=True)
+
+    # Core transaction details
+    transaction_code = Column(String(20), nullable=True)
+    phone_number = Column(String(20), nullable=False)
+    account_number = Column(String(20), nullable=True)  # Customer unique account number
+    amount = Column(DECIMAL(12, 2), nullable=False)
+    transaction_time = Column(DateTime, nullable=True)
+
+    # Payer details (for callbacks)
+    first_name = Column(String(50), nullable=True)
+    last_name = Column(String(50), nullable=True)
+
+    # Processing state
+    status = Column(String(20), default="pending")  # pending, confirmed, failed
+    processed = Column(Boolean, default=False)
+    failure_reason = Column(Text, nullable=True)
+    processing_error = Column(Text, nullable=True)
+
+    # Allocation summary
+    payment_allocation = Column(JSON, nullable=True)
+
+    # Initiator and flags
+    initiated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_simulation = Column(Boolean, default=False)
+
+    # Relationships
+    initiator = relationship("User", foreign_keys=[initiated_by])
+
+    def __repr__(self):
+        return f"<MpesaTransaction(code='{self.transaction_code}', amount={self.amount}, status='{self.status}')>"
+
+
+class SMSLog(BaseModel):
+    """Log of SMS messages sent via gateway"""
+    __tablename__ = "sms_logs"
+
+    phone_number = Column(String(20), nullable=False)
+    message = Column(Text, nullable=False)
+    status = Column(String(20), default="pending")  # sent, failed
+    provider_response = Column(Text, nullable=True)
+    notification_id = Column(Integer, nullable=True)
+
+    def __repr__(self):
+        return f"<SMSLog(phone='{self.phone_number}', status='{self.status}')>"
+
+
+class RiskScore(BaseModel):
+    """Persisted risk score snapshots per user"""
+    __tablename__ = "risk_scores"
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(DECIMAL(5, 2), nullable=False)
+    factors = Column(JSON, nullable=True)
+
+    # Relationships
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<RiskScore(user_id={self.user_id}, score={self.score})>"

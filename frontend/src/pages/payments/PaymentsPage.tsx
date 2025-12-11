@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
   Box,
@@ -22,8 +23,6 @@ import {
   Select,
   MenuItem,
   Chip,
-  IconButton,
-  Grid,
   Card,
   CardContent,
   Alert,
@@ -33,13 +32,12 @@ import {
   Payment as PaymentIcon,
   CheckCircle,
   Cancel,
-  Pending,
   PhoneAndroid,
   MonetizationOn,
   TrendingUp,
   Warning
 } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { paymentsAPI, mpesaAPI } from '../../services/api';
@@ -52,7 +50,7 @@ const PaymentsPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [mpesaDialog, setMpesaDialog] = useState(false);
   const [manualPaymentDialog, setManualPaymentDialog] = useState(false);
-  const [selectedLoan, setSelectedLoan] = useState<any>(null);
+
   
   const [mpesaForm, setMpesaForm] = useState({
     phone_number: '',
@@ -70,80 +68,72 @@ const PaymentsPage: React.FC = () => {
   });
 
   // Queries
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery(
-    ['payments', user?.branch_id],
-    () => paymentsAPI.getPayments({ branch_id: user?.branch_id }),
-    { refetchInterval: 30000 }
-  );
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments', user?.branch_id],
+    queryFn: () => paymentsAPI.getPayments({ branch_id: user?.branch_id }),
+    refetchInterval: 30000
+  });
 
-  const { data: pendingPayments = [] } = useQuery(
-    ['pending-payments'],
-    () => paymentsAPI.getPendingPayments(),
-    { 
-      enabled: user?.role === 'procurement_officer' || user?.role === 'admin',
-      refetchInterval: 15000 
-    }
-  );
+  const { data: pendingPayments = [] } = useQuery({
+    queryKey: ['pending-payments'],
+    queryFn: () => paymentsAPI.getPendingPayments(),
+    enabled: user?.role === 'procurement_officer' || user?.role === 'admin',
+    refetchInterval: 15000
+  });
 
-  const { data: paymentStats } = useQuery(
-    ['payment-stats', user?.branch_id],
-    () => paymentsAPI.getPaymentStats({ branch_id: user?.branch_id }),
-    { refetchInterval: 60000 }
-  );
+  const { data: paymentStats } = useQuery({
+    queryKey: ['payment-stats', user?.branch_id],
+    queryFn: () => paymentsAPI.getPaymentStats({ branch_id: user?.branch_id }),
+    refetchInterval: 60000
+  });
 
-  const { data: mpesaTransactions = [] } = useQuery(
-    ['mpesa-transactions'],
-    () => paymentsAPI.getMpesaTransactions(),
-    { refetchInterval: 30000 }
-  );
+  const { data: mpesaTransactions = [] } = useQuery({
+    queryKey: ['mpesa-transactions'],
+    queryFn: () => paymentsAPI.getMpesaTransactions(),
+    refetchInterval: 30000
+  });
 
   // Mutations
-  const initiateMpesaMutation = useMutation(
-    (data: any) => mpesaAPI.initiatePayment(data),
-    {
-      onSuccess: (data) => {
-        if (data.success) {
-          toast.success('M-Pesa payment request sent to customer phone!');
-          setMpesaDialog(false);
-          queryClient.invalidateQueries(['mpesa-transactions']);
-        } else {
-          toast.error(data.message || 'Failed to initiate M-Pesa payment');
-        }
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to initiate payment');
+  const initiateMpesaMutation = useMutation({
+    mutationFn: (data: any) => mpesaAPI.initiatePayment(data),
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('M-Pesa payment request sent to customer phone!');
+        setMpesaDialog(false);
+        queryClient.invalidateQueries({ queryKey: ['mpesa-transactions'] });
+      } else {
+        toast.error(data.message || 'Failed to initiate M-Pesa payment');
       }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to initiate payment');
     }
-  );
+  });
 
-  const createManualPaymentMutation = useMutation(
-    (data: any) => paymentsAPI.createManualPayment(data),
-    {
-      onSuccess: () => {
-        toast.success('Manual payment recorded successfully! Waiting for approval.');
-        setManualPaymentDialog(false);
-        queryClient.invalidateQueries(['payments']);
-        queryClient.invalidateQueries(['pending-payments']);
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to record payment');
-      }
+  const createManualPaymentMutation = useMutation({
+    mutationFn: (data: any) => paymentsAPI.createManualPayment(data),
+    onSuccess: () => {
+      toast.success('Manual payment recorded successfully! Waiting for approval.');
+      setManualPaymentDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to record payment');
     }
-  );
+  });
 
-  const confirmPaymentMutation = useMutation(
-    (paymentId: number) => paymentsAPI.confirmPayment(paymentId),
-    {
-      onSuccess: () => {
-        toast.success('Payment confirmed successfully!');
-        queryClient.invalidateQueries(['payments']);
-        queryClient.invalidateQueries(['pending-payments']);
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Failed to confirm payment');
-      }
+  const confirmPaymentMutation = useMutation({
+    mutationFn: (paymentId: number) => paymentsAPI.confirmPayment(paymentId),
+    onSuccess: () => {
+      toast.success('Payment confirmed successfully!');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to confirm payment');
     }
-  );
+  });
 
   // Event handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -227,79 +217,71 @@ const PaymentsPage: React.FC = () => {
 
       {/* Payment Statistics Cards */}
       {paymentStats && (
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <PaymentIcon color="primary" fontSize="large" />
-                  <Box>
-                    <Typography variant="h5">
-                      {paymentStats.total_payments}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Payments
-                    </Typography>
-                  </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 3 }}>
+          <Card sx={{ flex: '1 1 250px' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <PaymentIcon color="primary" fontSize="large" />
+                <Box>
+                  <Typography variant="h5">
+                    {paymentStats.total_payments}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total Payments
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <MonetizationOn color="success" fontSize="large" />
-                  <Box>
-                    <Typography variant="h5">
-                      ${paymentStats.total_amount.toLocaleString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Amount
-                    </Typography>
-                  </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ flex: '1 1 250px' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <MonetizationOn color="success" fontSize="large" />
+                <Box>
+                  <Typography variant="h5">
+                    ${paymentStats.total_amount.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total Amount
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <TrendingUp color="info" fontSize="large" />
-                  <Box>
-                    <Typography variant="h5">
-                      ${paymentStats.average_payment.toFixed(0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Average Payment
-                    </Typography>
-                  </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ flex: '1 1 250px' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <TrendingUp color="info" fontSize="large" />
+                <Box>
+                  <Typography variant="h5">
+                    ${paymentStats.average_payment.toFixed(0)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Average Payment
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Warning color="warning" fontSize="large" />
-                  <Box>
-                    <Typography variant="h5">
-                      {pendingPayments.length}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Pending Approval
-                    </Typography>
-                  </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ flex: '1 1 250px' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Warning color="warning" fontSize="large" />
+                <Box>
+                  <Typography variant="h5">
+                    {pendingPayments.length}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Pending Approval
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
       )}
 
       {/* Tabs */}
@@ -313,12 +295,7 @@ const PaymentsPage: React.FC = () => {
 
         {/* All Payments Tab */}
         <TabPanel value={tabValue} index={0}>
-          {paymentsLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer>
+          <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -374,7 +351,6 @@ const PaymentsPage: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          )}
         </TabPanel>
 
         {/* Pending Approval Tab */}
@@ -543,11 +519,11 @@ const PaymentsPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setMpesaDialog(false)}>Cancel</Button>
-          <Button 
+          <Button
             onClick={handleInitiateMpesa}
             variant="contained"
-            disabled={initiateMpesaMutation.isLoading}
-            startIcon={initiateMpesaMutation.isLoading ? <CircularProgress size={20} /> : <PhoneAndroid />}
+            disabled={initiateMpesaMutation.isPending}
+            startIcon={initiateMpesaMutation.isPending ? <CircularProgress size={20} /> : <PhoneAndroid />}
           >
             Send M-Pesa Request
           </Button>
@@ -559,58 +535,50 @@ const PaymentsPage: React.FC = () => {
         <DialogTitle>Record Manual Payment</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Loan ID"
-                  type="number"
-                  value={manualForm.loan_id}
-                  onChange={(e) => setManualForm(prev => ({ ...prev, loan_id: e.target.value }))}
-                  fullWidth
-                  required
-                />
-              </Grid>
-              
-              <Grid item xs={6}>
-                <TextField
-                  label="Amount"
-                  type="number"
-                  value={manualForm.amount}
-                  onChange={(e) => setManualForm(prev => ({ ...prev, amount: e.target.value }))}
-                  fullWidth
-                  required
-                  InputProps={{ startAdornment: 'KES ' }}
-                />
-              </Grid>
-            </Grid>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Payment Method</InputLabel>
-                  <Select
-                    value={manualForm.payment_method}
-                    onChange={(e) => setManualForm(prev => ({ ...prev, payment_method: e.target.value }))}
-                    label="Payment Method"
-                  >
-                    <MenuItem value="cash">Cash</MenuItem>
-                    <MenuItem value="mpesa">M-Pesa</MenuItem>
-                    <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={6}>
-                <TextField
-                  label="Payment Date"
-                  type="date"
-                  value={manualForm.payment_date}
-                  onChange={(e) => setManualForm(prev => ({ ...prev, payment_date: e.target.value }))}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-            </Grid>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Loan ID"
+                type="number"
+                value={manualForm.loan_id}
+                onChange={(e) => setManualForm(prev => ({ ...prev, loan_id: e.target.value }))}
+                fullWidth
+                required
+              />
+
+              <TextField
+                label="Amount"
+                type="number"
+                value={manualForm.amount}
+                onChange={(e) => setManualForm(prev => ({ ...prev, amount: e.target.value }))}
+                fullWidth
+                required
+                InputProps={{ startAdornment: 'KES ' }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Payment Method</InputLabel>
+                <Select
+                  value={manualForm.payment_method}
+                  onChange={(e) => setManualForm(prev => ({ ...prev, payment_method: e.target.value }))}
+                  label="Payment Method"
+                >
+                  <MenuItem value="cash">Cash</MenuItem>
+                  <MenuItem value="mpesa">M-Pesa</MenuItem>
+                  <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Payment Date"
+                type="date"
+                value={manualForm.payment_date}
+                onChange={(e) => setManualForm(prev => ({ ...prev, payment_date: e.target.value }))}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
             
             {manualForm.payment_method === 'mpesa' && (
               <TextField
@@ -640,10 +608,10 @@ const PaymentsPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setManualPaymentDialog(false)}>Cancel</Button>
-          <Button 
+          <Button
             onClick={handleManualPayment}
             variant="contained"
-            disabled={createManualPaymentMutation.isLoading}
+            disabled={createManualPaymentMutation.isPending}
           >
             Record Payment
           </Button>

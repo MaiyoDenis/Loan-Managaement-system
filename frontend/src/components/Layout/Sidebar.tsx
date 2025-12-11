@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Drawer,
   List,
@@ -11,8 +11,12 @@ import {
   Box,
   Typography,
   Avatar,
-  Chip
+  Chip,
+  IconButton,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import {
   Dashboard,
   People,
@@ -126,9 +130,19 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
   };
 
   const handleLogout = () => {
@@ -162,19 +176,8 @@ const Sidebar: React.FC = () => {
     user && item.roles.includes(user.role)
   );
 
-  return (
-    <Drawer
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-        },
-      }}
-      variant="permanent"
-      anchor="left"
-    >
+  const drawerContent = (
+    <>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
@@ -254,7 +257,70 @@ const Sidebar: React.FC = () => {
           </ListItemButton>
         </ListItem>
       </List>
-    </Drawer>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      {isMobile && (
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerToggle}
+          sx={{
+            position: 'fixed',
+            top: 16,
+            left: 16,
+            zIndex: theme.zIndex.drawer + 1,
+            bgcolor: 'primary.main',
+            color: 'white',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            },
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
+
+      {/* Mobile drawer */}
+      {isMobile ? (
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true, // Better open performance on mobile
+          }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      ) : (
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+    </>
   );
 };
 

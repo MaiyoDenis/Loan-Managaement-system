@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
   Box,
@@ -23,20 +24,18 @@ import {
   MenuItem,
   Chip,
   IconButton,
-  Alert,
-  Grid,
   Card,
   CardContent
 } from '@mui/material';
+
 import {
   AccountBalance,
   TrendingUp,
   SwapHoriz,
   Add as AddIcon,
-  Search as SearchIcon,
-  Download as DownloadIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { accountsAPI } from '../../services/api';
@@ -72,7 +71,7 @@ const AccountsPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [transferDialog, setTransferDialog] = useState(false);
   const [depositDialog, setDepositDialog] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<any>(null);
+
   const [transferForm, setTransferForm] = useState({
     user_id: '',
     from_account: 'savings',
@@ -90,51 +89,47 @@ const AccountsPage: React.FC = () => {
   });
 
   // Queries
-  const { data: savingsAccounts = [], isLoading: savingsLoading } = useQuery(
-    ['savings-accounts', user?.branch_id],
-    () => accountsAPI.getSavingsAccounts(user?.branch_id),
-    { enabled: !!user }
-  );
+  const { data: savingsAccounts = [] } = useQuery<any[]>({
+    queryKey: ['savings-accounts', user?.branch_id],
+    queryFn: () => accountsAPI.getSavingsAccounts(user?.branch_id),
+    enabled: !!user,
+  });
 
-  const { data: drawdownAccounts = [], isLoading: drawdownLoading } = useQuery(
-    ['drawdown-accounts', user?.branch_id],
-    () => accountsAPI.getDrawdownAccounts(user?.branch_id),
-    { enabled: !!user }
-  );
+  const { data: drawdownAccounts = [] } = useQuery<any[]>({
+    queryKey: ['drawdown-accounts', user?.branch_id],
+    queryFn: () => accountsAPI.getDrawdownAccounts(user?.branch_id),
+    enabled: !!user,
+  });
 
   // Mutations
-  const transferMutation = useMutation(
-    (data: any) => accountsAPI.transferFunds(data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['savings-accounts']);
-        queryClient.invalidateQueries(['drawdown-accounts']);
-        toast.success('Transfer completed successfully!');
-        setTransferDialog(false);
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Transfer failed');
-      }
+  const transferMutation = useMutation({
+    mutationFn: (data: any) => accountsAPI.transferFunds(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['drawdown-accounts'] });
+      toast.success('Transfer completed successfully!');
+      setTransferDialog(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Transfer failed');
     }
-  );
+  });
 
-  const depositMutation = useMutation(
-    (data: any) => accountsAPI.depositFunds(data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['savings-accounts']);
-        queryClient.invalidateQueries(['drawdown-accounts']);
-        toast.success('Deposit recorded successfully!');
-        setDepositDialog(false);
-      },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.detail || 'Deposit failed');
-      }
+  const depositMutation = useMutation({
+    mutationFn: (data: any) => accountsAPI.depositFunds(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['drawdown-accounts'] });
+      toast.success('Deposit recorded successfully!');
+      setDepositDialog(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Deposit failed');
     }
-  );
+  });
 
   // Event handlers
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -207,61 +202,55 @@ const AccountsPage: React.FC = () => {
       </Box>
 
       {/* Account Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <AccountBalance color="primary" />
-                <Box>
-                  <Typography variant="h6">
-                    ${savingsAccounts.reduce((sum: number, acc: any) => sum + acc.balance, 0).toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Savings
-                  </Typography>
-                </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 3 }}>
+        <Card sx={{ flex: '1 1 300px' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AccountBalance color="primary" />
+              <Box>
+                <Typography variant="h6">
+                  ${savingsAccounts.reduce((sum: number, acc: any) => sum + acc.balance, 0).toLocaleString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Total Savings
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <TrendingUp color="info" />
-                <Box>
-                  <Typography variant="h6">
-                    ${drawdownAccounts.reduce((sum: number, acc: any) => sum + acc.balance, 0).toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Drawdown
-                  </Typography>
-                </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ flex: '1 1 300px' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TrendingUp color="info" />
+              <Box>
+                <Typography variant="h6">
+                  ${drawdownAccounts.reduce((sum: number, acc: any) => sum + acc.balance, 0).toLocaleString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Total Drawdown
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <AddIcon color="success" />
-                <Box>
-                  <Typography variant="h6">
-                    {savingsAccounts.filter((acc: any) => acc.status === 'active').length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Active Accounts
-                  </Typography>
-                </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ flex: '1 1 300px' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AddIcon color="success" />
+              <Box>
+                <Typography variant="h6">
+                  {savingsAccounts.filter((acc: any) => acc.status === 'active').length}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Active Accounts
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Tabs */}
       <Paper sx={{ width: '100%' }}>
@@ -399,35 +388,31 @@ const AccountsPage: React.FC = () => {
               required
             />
             
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>From Account</InputLabel>
-                  <Select
-                    value={transferForm.from_account}
-                    onChange={(e) => setTransferForm(prev => ({ ...prev, from_account: e.target.value }))}
-                    label="From Account"
-                  >
-                    <MenuItem value="savings">Savings</MenuItem>
-                    <MenuItem value="drawdown">Drawdown</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>To Account</InputLabel>
-                  <Select
-                    value={transferForm.to_account}
-                    onChange={(e) => setTransferForm(prev => ({ ...prev, to_account: e.target.value }))}
-                    label="To Account"
-                  >
-                    <MenuItem value="savings">Savings</MenuItem>
-                    <MenuItem value="drawdown">Drawdown</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>From Account</InputLabel>
+                <Select
+                  value={transferForm.from_account}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, from_account: e.target.value }))}
+                  label="From Account"
+                >
+                  <MenuItem value="savings">Savings</MenuItem>
+                  <MenuItem value="drawdown">Drawdown</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth>
+                <InputLabel>To Account</InputLabel>
+                <Select
+                  value={transferForm.to_account}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, to_account: e.target.value }))}
+                  label="To Account"
+                >
+                  <MenuItem value="savings">Savings</MenuItem>
+                  <MenuItem value="drawdown">Drawdown</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
             
             <TextField
               label="Amount"
@@ -451,10 +436,10 @@ const AccountsPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTransferDialog(false)}>Cancel</Button>
-          <Button 
+          <Button
             onClick={handleTransferSubmit}
             variant="contained"
-            disabled={transferMutation.isLoading}
+            disabled={transferMutation.isPending}
           >
             Transfer
           </Button>
@@ -475,36 +460,32 @@ const AccountsPage: React.FC = () => {
               required
             />
             
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Account Type</InputLabel>
-                  <Select
-                    value={depositForm.account_type}
-                    onChange={(e) => setDepositForm(prev => ({ ...prev, account_type: e.target.value }))}
-                    label="Account Type"
-                  >
-                    <MenuItem value="savings">Savings</MenuItem>
-                    <MenuItem value="drawdown">Drawdown</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Payment Method</InputLabel>
-                  <Select
-                    value={depositForm.payment_method}
-                    onChange={(e) => setDepositForm(prev => ({ ...prev, payment_method: e.target.value }))}
-                    label="Payment Method"
-                  >
-                    <MenuItem value="cash">Cash</MenuItem>
-                    <MenuItem value="mpesa">M-Pesa</MenuItem>
-                    <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Account Type</InputLabel>
+                <Select
+                  value={depositForm.account_type}
+                  onChange={(e) => setDepositForm(prev => ({ ...prev, account_type: e.target.value }))}
+                  label="Account Type"
+                >
+                  <MenuItem value="savings">Savings</MenuItem>
+                  <MenuItem value="drawdown">Drawdown</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth>
+                <InputLabel>Payment Method</InputLabel>
+                <Select
+                  value={depositForm.payment_method}
+                  onChange={(e) => setDepositForm(prev => ({ ...prev, payment_method: e.target.value }))}
+                  label="Payment Method"
+                >
+                  <MenuItem value="cash">Cash</MenuItem>
+                  <MenuItem value="mpesa">M-Pesa</MenuItem>
+                  <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
             
             <TextField
               label="Amount"
@@ -541,7 +522,7 @@ const AccountsPage: React.FC = () => {
           <Button 
             onClick={handleDepositSubmit}
             variant="contained"
-            disabled={depositMutation.isLoading}
+            disabled={depositMutation.isPending}
           >
             Record Deposit
           </Button>

@@ -18,8 +18,8 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { getGroup } from '../../services/groupService';
 import { getGroupMembers, createCustomer } from '../../services/userService';
-import { GroupResponse } from '../../schemas/group';
-import { UserResponse, CustomerCreate } from '../../schemas/user';
+import type { GroupResponse } from '../../schemas/group';
+import type { UserResponse, CustomerCreate } from '../../schemas/user';
 import { motion } from 'framer-motion';
 import CustomerForm from './CustomerForm';
 
@@ -117,10 +117,20 @@ const GroupDetailsPage: React.FC = () => {
                     <TableCell>{member.first_name} {member.last_name}</TableCell>
                     <TableCell>{member.phone_number}</TableCell>
                     <TableCell>
-                      <IconButton onClick={() => console.log(`Edit member ${member.id}`)}>
+                      <IconButton 
+                        onClick={() => {
+                          // TODO: Implement edit member
+                        }}
+                        aria-label={`Edit ${member.first_name} ${member.last_name}`}
+                      >
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => console.log(`Delete member ${member.id}`)}>
+                      <IconButton 
+                        onClick={() => {
+                          // TODO: Implement delete member
+                        }}
+                        aria-label={`Delete ${member.first_name} ${member.last_name}`}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>

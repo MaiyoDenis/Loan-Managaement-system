@@ -1,7 +1,7 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 
 // Placeholder reducer for now
-const placeholderReducer = (state = {}, action: any) => state;
+const placeholderReducer = (state = {}) => state;
 
 // Combine reducers (add more as needed)
 const rootReducer = combineReducers({

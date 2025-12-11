@@ -65,9 +65,12 @@ structlog==23.2.0            # Structured logging
 # ===== EXPORT & REPORTING =====
 openpyxl==3.1.2              # Excel export
 reportlab==4.0.7             # PDF generation
-matplotlib==3.8.2           # Charts for reports
-pandas==2.1.3                # Data analysis
+matplotlib==3.7.5           # Charts for reports (compatible with Python 3.8)
+pandas==2.0.3                # Data analysis (Py3.8 compatible)
+numpy==1.24.4                # Scientific computing (Py3.8 compatible)
+scikit-learn==1.3.2          # ML (Py3.8 compatible)
+joblib==1.3.2                # Model persistence
 
 # ===== M-PESA INTEGRATION =====
-daraja==0.0.4                # M-Pesa SDK (if available)
+# daraja SDK optional - using custom MpesaService
 # OR build custom M-Pesa integration

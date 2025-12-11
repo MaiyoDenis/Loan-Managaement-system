@@ -116,7 +116,7 @@ def delete_branch(
     branch_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("branch_delete"))
-) -> Any:
+) -> None:
     """
     Delete branch
     """

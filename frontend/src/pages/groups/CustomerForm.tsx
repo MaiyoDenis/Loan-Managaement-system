@@ -7,7 +7,7 @@ import {
   Button,
   TextField,
 } from '@mui/material';
-import { CustomerCreate } from '../../schemas/user';
+import type { CustomerCreate } from '../../schemas/user';
 import { motion } from 'framer-motion';
 
 interface CustomerFormProps {

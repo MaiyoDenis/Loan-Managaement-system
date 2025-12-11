@@ -44,8 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (userData && userData !== 'undefined') {
         try {
           return JSON.parse(userData);
-        } catch (error) {
-          console.error('Error parsing user data:', error);
+        } catch {
+          // Invalid user data in localStorage, clear it
           localStorage.removeItem('user');
           return null;
         }
@@ -53,13 +53,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     return null;
   });
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const login = async (email: string, password: string) => {
+    // Backend returns tokens but may not include user; fetch user after login
     const response = await authAPI.login(email, password);
-    const { access_token, user: userData } = response;
+    const { access_token, refresh_token } = response;
+
+    if (!access_token) {
+      throw new Error('Login failed: missing access token');
+    }
 
     localStorage.setItem('access_token', access_token);
+    if (refresh_token) {
+      localStorage.setItem('refresh_token', refresh_token);
+    }
+
+    // Fetch current user using the new token
+    const userData = await authAPI.getCurrentUser(access_token);
+    if (!userData) {
+      throw new Error('Login failed: unable to load user');
+    }
+
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
