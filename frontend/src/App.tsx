@@ -19,6 +19,7 @@ import UsersPage from './pages/users/UsersPage';
 import BranchesPage from './pages/branches/BranchesPage';
 import GroupsPage from './pages/groups/GroupsPage';
 import GroupDetailsPage from './pages/groups/GroupDetailsPage';
+import LoanProductsPage from './pages/loan-products/LoanProductsPage';
 
 // Theme configuration
 const theme = createTheme({
@@ -83,6 +84,7 @@ function App() {
                             <Route path="/branches" element={<BranchesPage />} />
                             <Route path="/groups" element={<GroupsPage />} />
                             <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
+                            <Route path="/loan-products" element={<LoanProductsPage />} />
                             {/* Add more routes as needed */}
                           </Routes>
                         </Layout>
